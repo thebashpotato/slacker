@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=0.1.0
+Name=Slacker Window Manager
+Comment=A Dynamic Tiling Window manager in modern C++
+Exec=/usr/local/bin/slacker-wm
+Type=XSession
