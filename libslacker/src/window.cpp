@@ -47,11 +47,9 @@ namespace slacker {
                 DefaultVisual(this->m_slacker_conn_ptr->get_raw_display(), screen),
                 CWBackPixel | CWBorderPixel | CWEventMask, &xwa);
 
-        if ((this->m_window == BadAlloc) || (this->m_window == BadMatch) ||
-            (this->m_window == BadValue) || (this->m_window == BadWindow)) {
-            return false;
-        }
-        return true;
+        // TODO: X return codes need to be wrapped
+        return (this->m_window != BadAlloc) && (this->m_window != BadMatch) &&
+            (this->m_window != BadValue) && (this->m_window != BadWindow);
     }
 
     auto SlackerWindow::map() noexcept -> bool {

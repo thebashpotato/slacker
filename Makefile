@@ -37,7 +37,7 @@ define _clean =
 	echo "Cleaning build artifacts.."
 	[ -d build ] && rm -rf build
 	[ -d build-debug ] && rm -rf build-debug
-	[ -d cmake-build-debug ] && rm -rf cmake-build-debug
+	[ -d build-release ] && rm -rf build-release
 	echo
 endef
 

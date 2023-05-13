@@ -3,8 +3,8 @@
 #include <string_view>
 
 namespace slacker {
-    SlackerDisplay::SlackerDisplay(std::string_view &&name) {
-        if ((this->m_display = XOpenDisplay(name.data())) == nullptr) {
+    SlackerDisplay::SlackerDisplay(std::string_view &&name) : m_display(XOpenDisplay(name.data())) {
+        if (this->m_display == nullptr) {
             this->m_init_failure = true;
         }
     }

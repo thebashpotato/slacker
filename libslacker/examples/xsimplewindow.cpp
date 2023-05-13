@@ -34,9 +34,9 @@ public:
             return false;
         }
 
-        XEvent ev;
-        while (XNextEvent(this->m_dpy_conn->get_raw_display(), &ev) == 0) {
-            switch (ev.type) {
+        XEvent event;
+        while (XNextEvent(this->m_dpy_conn->get_raw_display(), &event) == 0) {
+            switch (event.type) {
                 case ButtonPress:
                     return true;
             }
@@ -50,17 +50,8 @@ private:
     slacker::SlackerWindow m_root{};
 };
 
-void run(slacker::SlackerXConnPtr const &connection) {
-    XEvent ev;
-    while (XNextEvent(connection->get_raw_display(), &ev) == 0) {
-        switch (ev.type) {
-            case ButtonPress:
-                return;
-        }
-    }
-}
 
-int main() {
+auto main() -> int {
     std::cout << "Lib Slacker Version: " << slacker::get_version() << '\n';
     auto app = Application();
 
