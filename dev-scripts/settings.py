@@ -25,7 +25,7 @@ PACKAGE_CONFIG: Dict[str, str] = {
     "BACKEND": "checkinstall",
     "LICENSE": "GPL-3.0",
     "MAINTAINER": "thebashpotato",
-    "REQUIRES": "",
+    "REQUIRES": "libx11-dev libx11-xcb-dev libx11-xcb1 libx11-6",
     "RELEASE": f"{distro.codename()}-{distro.version()}"
 }
 
