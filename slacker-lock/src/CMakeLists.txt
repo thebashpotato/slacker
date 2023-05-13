@@ -1,16 +1,16 @@
 #
 # NOTE: Output build param information
 #
-message(STATUS "Building ${PACKAGE_NAME} [${CMAKE_BUILD_TYPE}]")
+message(STATUS "Building ${PROJECT_NAME} [${CMAKE_BUILD_TYPE}]")
 
 #
 # NOTE: Declare the executable and add all source modules
 #
-add_executable(${PACKAGE_NAME} ${ALL_SOURCE_FILES})
+add_executable(${PROJECT_NAME} ${ALL_SOURCE_FILES})
 
-target_include_directories(${PACKAGE_NAME} PUBLIC ${APP_INCLUDE_DIR} ${X11_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${APP_INCLUDE_DIR} ${X11_INCLUDE_DIR})
 target_link_libraries(
-  ${PACKAGE_NAME}
+  ${PROJECT_NAME}
   PRIVATE project_options
           project_warnings
           stdc++fs
@@ -20,4 +20,4 @@ target_link_libraries(
 #
 # NOTE: Generate install command for resulting Makefile
 #
-install(TARGETS ${PACKAGE_NAME})
+install(TARGETS ${PROJECT_NAME})

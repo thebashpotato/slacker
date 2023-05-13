@@ -8,7 +8,7 @@ set(APP_TEST_SOURCES "${APP_TEST_SOURCE_DIR}/version_test.cpp")
 #
 # NOTE: Declare a custom name for the test executable
 #
-set(PROJECT_UNIT_TEST_NAME "${PACKAGE_NAME}_tests")
+set(PROJECT_UNIT_TEST_NAME "${PROJECT_NAME}_tests")
 
 #
 # NOTE: Add all test sources to the executable, and any other sources

@@ -1,8 +1,8 @@
 #
 # NOTE: add the executables
 #
-set(ScratchFile "${PACKAGE_NAME}_scratch")
-set(SimpleWindow "${PACKAGE_NAME}_simple_window")
+set(ScratchFile "${PROJECT_NAME}_scratch")
+set(SimpleWindow "${PROJECT_NAME}_simple_window")
 
 add_executable(${ScratchFile} "${APP_EXAMPLES_SOURCE_DIR}/scratch.cpp" ${SLACKER_SOURCE_FILES})
 add_executable(${SimpleWindow} "${APP_EXAMPLES_SOURCE_DIR}/xsimplewindow.cpp" ${SLACKER_SOURCE_FILES})
@@ -16,6 +16,7 @@ target_link_libraries(
           project_warnings
           stdc++fs
           ${X11_LIBRARIES})
+
 target_link_libraries(
   ${SimpleWindow}
   PRIVATE project_options

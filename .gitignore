@@ -50,5 +50,8 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 build/
+build-debug/
+build-release/
 .cache/
+.cmake-format
 dev-scripts/__pycache__

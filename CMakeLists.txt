@@ -4,20 +4,25 @@
 cmake_minimum_required(VERSION 3.18)
 
 #
+# NOTE: Set workspace name, and language.
+#
+project(
+  slacker-workspace
+  VERSION 0.1.0
+  DESCRIPTION "Window Manager environment in modern C++"
+  HOMEPAGE_URL "https://github.com/thebashpotato/slacker"
+  LANGUAGES CXX C)
+
+#
 # NOTE: Set the C++ standard
 #
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 #
-# NOTE: Set project name, and language.
+# NOTE: add additional project options
 #
-project(
-  slacker
-  VERSION 0.1.0
-  DESCRIPTION "Window Manager environment in modern C++"
-  HOMEPAGE_URL "https://github.com/thebashpotato/slacker"
-  LANGUAGES CXX C)
+option(SLACKER_DEV_MODE "Enables testing and example builds for all projects" ON)
 
 #
 # NOTE: Add our custom cmake modules to the cmake module path
@@ -45,6 +50,43 @@ include(StaticAnalyzers)
 include(CompilerWarnings)
 include(GNUInstallDirs)
 set_project_warnings(project_warnings)
+
+#
+# NOTE: FindPackage and CPM (Dependencies needed by all projects are defined at this level only.
+#
+find_package(X11 REQUIRED)
+
+if(SLACKER_DEV_MODE)
+  # Enable examples
+  set(CMAKE_BUILD_TYPE
+      Debug
+      CACHE STRING "Forcing build type to debug" FORCE)
+
+  # Bring in Gtest Unit testing library
+  cpmaddpackage(
+    NAME
+    googletest
+    GITHUB_REPOSITORY
+    google/googletest
+    GIT_TAG
+    v1.13.0
+    VERSION
+    1.13.0
+    OPTIONS
+    "BUILD_GMOCK ON"
+    "INSTALL_GTEST OFF"
+    "gtest_force_shared_crt ON")
+  if(googletest_ADDED)
+    message(STATUS "gtest configured correctly")
+  else()
+    message(WARNING "gtest was not configured properly")
+  endif()
+  enable_testing()
+else()
+  set(CMAKE_BUILD_TYPE
+      Release
+      CACHE STRING "Forcing build type to release" FORCE)
+endif()
 
 #
 # NOTE: Add sub-projects to the project

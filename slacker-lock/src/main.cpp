@@ -4,7 +4,7 @@
 // #include <slacker.hpp>
 
 auto main() -> int {
-  std::cout << "Slacker Lock Version: " << slacker_lock::get_version() << '\n';
+    std::cout << "Slacker Lock Version: " << slacker_lock::get_version() << '\n';
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
