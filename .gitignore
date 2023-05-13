@@ -53,5 +53,4 @@ build/
 build-debug/
 build-release/
 .cache/
-.cmake-format
 dev-scripts/__pycache__
