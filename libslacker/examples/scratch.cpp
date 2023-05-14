@@ -12,6 +12,10 @@ auto main() -> int {
         return EXIT_FAILURE;
     }
 
+    std::cout << "X11 screen_id count: " << display->screen_count() << '\n';
+    std::cout << "X11 screen_id: " << display->screen_id() << '\n';
+    std::cout << "X11 default root: " << display->default_root() << '\n';
+    std::cout << "X11 root: " << display->root() << '\n';
     std::cout << "X11 server vendor: " << display->serverVendor() << '\n';
 
     return EXIT_SUCCESS;

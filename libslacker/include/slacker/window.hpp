@@ -21,7 +21,7 @@ namespace slacker {
         X11Window() = default;
 
         /**
-         * @brief Creates a root window.
+         * @brief Creates a screen_id window.
          *
          * @param `shared_display_ptr` a reference counted connection to the X server.
          * @param `screen` number of screens on the host
@@ -58,7 +58,7 @@ namespace slacker {
         [[nodiscard]] auto get_window() const noexcept -> Window;
 
         /**
-         * @brief Is this window the root window.
+         * @brief Is this window the screen_id window.
          * */
         [[nodiscard]] auto is_root() const noexcept -> bool;
 
@@ -66,7 +66,7 @@ namespace slacker {
         /**
          * @brief Wrapper around XCreateWindow
          *
-         * @param `root_window` The root window instance from which this window will
+         * @param `root_window` The screen_id window instance from which this window will
          * be a child of.
          * @param `rect` Window geometry object
          * @param `screen` number of screens for the host
@@ -81,7 +81,7 @@ namespace slacker {
          * @brief Wrapper around XUnmapWindow.
          *
          * @detail Only maps the window iff it is not already mapped, and if it is not
-         * the root window.
+         * the screen_id window.
          *
          * @returns false if BadWindow error code is received from XMapWindow,
          * true if Success

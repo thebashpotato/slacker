@@ -65,6 +65,26 @@ namespace slacker {
         [[nodiscard]] auto raw_display() const -> Display *;
 
         /**
+         * @brief Gets active screen_id.
+         * */
+        [[nodiscard]] auto screen_id() const -> int32_t;
+
+        /**
+         * @brief Gets number of screens
+         * */
+        [[nodiscard]] auto screen_count() const -> int32_t;
+
+        /**
+         * @brief Gets default root window
+         * */
+        [[nodiscard]] auto default_root() const -> Window;
+
+        /**
+         * @brief Gets root window based on screen_id
+         * */
+        [[nodiscard]] auto root() const -> Window;
+
+        /**
          * @brief Gets the server vendor for the X11 version that is running
          *
          * @details String that provides some identification of the X server implementation.

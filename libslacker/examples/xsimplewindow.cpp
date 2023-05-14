@@ -8,7 +8,7 @@ public:
 
     [[nodiscard]] auto setup() noexcept -> bool {
         display_ = slacker::X11Display::open();
-        if (!display_) {
+        if (!display_->isOpen()) {
             return false;
         }
 

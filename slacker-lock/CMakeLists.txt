@@ -13,7 +13,7 @@ set(APP_TEST_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 set(APP_EXAMPLES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples")
 
 #
-# NOTE: Prevent in source builds (can't build in src/ or in project root)
+# NOTE: Prevent in source builds (can't build in src/ or in project screen_id)
 #
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR OR CMAKE_CURRENT_BINARY_DIR STREQUAL APP_SOURCE_DIR)
   message(

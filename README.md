@@ -3,7 +3,7 @@
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
 Slacker is a tiling window manager environment for X written in C++.
-It consists of a screen locker utility, a dynamic tiling window manager,
+It consists of a screen_id locker utility, a dynamic tiling window manager,
 and shared library which wraps the needed X11 functionality in a safe modern C++ 20
 API. **It is currently in the very early stages and nothing works**
 
@@ -78,7 +78,7 @@ folder.
 
 1. [libslacker](./docs/libslacker.md) C++ shared library which wraps `X11` and all subsequent `X libraries`.
 
-2. [slacker-lock](./docs/slacker-wm.md) C++ screen locker utility, spiritual port of `slock`
+2. [slacker-lock](./docs/slacker-wm.md) C++ screen_id locker utility, spiritual port of `slock`
 
 3. [slacker-wm](./docs/slacker-wm.md) C++ dynamic tiling window manager, spiritual port of `dwm` with way more features.
 

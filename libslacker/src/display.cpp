@@ -37,6 +37,22 @@ namespace slacker {
         return display_.get();
     }
 
+    auto X11Display::screen_id() const -> int32_t {
+        return DefaultScreen(display_.get());
+    }
+
+    auto X11Display::screen_count() const -> int32_t {
+        return XScreenCount(display_.get());
+    }
+
+    auto X11Display::default_root() const -> Window {
+        return DefaultRootWindow(display_.get());
+    }
+
+    auto X11Display::root() const -> Window {
+        return RootWindow(display_.get(), screen_id());
+    }
+
     auto X11Display::serverVendor() const -> std::string {
         return XServerVendor(display_.get());
     }
