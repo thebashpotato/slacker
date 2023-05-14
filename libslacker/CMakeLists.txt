@@ -44,6 +44,7 @@ set(SLACKER_SOURCE_FILES
     "${APP_SOURCE_DIR}/window.cpp"
     "${APP_SOURCE_DIR}/version.cpp"
     "${APP_SOURCE_DIR}/geometry.cpp")
+
 set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES})
 
 #

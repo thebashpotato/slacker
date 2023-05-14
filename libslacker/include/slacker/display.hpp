@@ -4,71 +4,79 @@
 #include <X11/Xlib.h>
 #include <memory>
 #include <slacker/attributes.hpp>
-#include <string_view>
 
 namespace slacker {
+    using SharedXDisplayPtr = std::shared_ptr<Display>;
     /**
      * @brief Wraps the most important object in an X program, the Display *
-     *
-     * @detail Handles memory management of Display*, the `SlackerDisplay` class
-     * should be passed around to other objects like `SlackerWindow` as a
-     * shared_ptr, using the `SlackerXConnPtr` alias at the bottom of this file.
-     * Since the Display is essentially just a connection to the X server, it needs
-     * to be shared, naturally in C++ a reference counted object is the best way to
-     * do this as the overhead of counting references (incrementing/decrementing an
-     * integer) is negligible at best.
      * */
-    class SLACKER_EXPORT SlackerDisplay {
+    class SLACKER_EXPORT X11Display {
     public:
         /**
-         * @brief Calls XOpenDisplay with the name of the display.
-         * If the XOpenDisplay function fails, m_display_failure will be set to false
-         * as it is not safe to throw exceptions in constructors. The boolean should
-         * be checked after creating the display with the init_failure() method.
+         * @brief Calls XOpenDisplay, and sets a custom lambda function deleter that
+         * calls XCloseDisplay on object destruction.
          *
-         * @param `name` id of the display, can be left empty for NULL
+         * @details Use the static open method instead of using this constructor directly.
          * */
-        explicit SlackerDisplay(std::string_view &&name = "");
+        X11Display();
 
         /**
-         * @brief  Calls XCloseDisplay if the underlying dpy pointer
-         * is not nullptr.
+         * @brief default move constructor and assignment
          * */
-        virtual ~SlackerDisplay();
+        X11Display(X11Display &&other) noexcept;
+        auto operator=(X11Display &&other) noexcept -> X11Display &;
 
         /**
-         * @brief Default copy/move constructors and assignment operators
+         * @brief  Default destructor
+         *
+         * @details Since a custom lambda deleter is used in the constructor,
+         * and the underlying Display is wrapped in a shared_ptr, our memory
+         * is guaranteed to be cleaned up.
+         **/
+        virtual ~X11Display() = default;
+
+        /**
+         * @brief Disallow copying
          * */
-        SlackerDisplay(const SlackerDisplay &other) = default;
-        auto operator=(const SlackerDisplay &other) -> SlackerDisplay & = default;
-        SlackerDisplay(SlackerDisplay &&other) = default;
-        auto operator=(SlackerDisplay &&other) -> SlackerDisplay & = default;
+        X11Display(const X11Display &other) = delete;
+        auto operator=(const X11Display &other) -> X11Display & = delete;
 
     public:
         /**
-         * @brief Gets the underlying raw display pointer
+         * @brief Used to construct the class
          * */
-        [[nodiscard]] auto get_raw_display() -> Display *;
+        [[nodiscard]] static auto open() -> std::unique_ptr<X11Display>;
 
         /**
-         * @brief Signals if the XOpenDisplay failed
+         * @brief Check if the display opened correctly.
+         *
+         * @returns false if XOpenDisplay Failed, true for success.
          * */
-        [[nodiscard]] auto init_failure() const noexcept -> bool;
+        [[nodiscard]] auto isOpen() const -> bool;
+
+        /**
+         * @brief Gets the SharedXDisplayPtr
+         * */
+        [[nodiscard]] auto shared_display() const -> SharedXDisplayPtr;
+
+        /**
+         * @brief Gets the raw Display *
+         * */
+        [[nodiscard]] auto raw_display() const -> Display *;
+
+        /**
+         * @brief Gets the server vendor for the X11 version that is running
+         *
+         * @details String that provides some identification of the X server implementation.
+         * If the data returned by the server is in the Latin Portable Character Encoding,
+         * then the string is in the Host Portable Character Encoding.
+         * Otherwise, the contents of the string are implementation-dependent.
+         * */
+        [[nodiscard]] auto serverVendor() const -> std::string;
 
     private:
-        Display *m_display{nullptr};
-        bool m_init_failure{false};
+        SharedXDisplayPtr display_;
     };
-
-    /**
-     * @brief Alias for the SlackerDisplay class as shared_ptr.
-     *
-     * @details It is called SlackerXConnPtr because the underlying Display *
-     * is really just a connection to the X server. Since the connection must be
-     * shared between many objects in X programs, it is safer to pass our wrapper
-     * context around as reference counted pointer.
-     * */
-    using SlackerXConnPtr = std::shared_ptr<SlackerDisplay>;
 }// namespace slacker
 
 #endif

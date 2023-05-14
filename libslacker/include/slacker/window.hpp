@@ -13,41 +13,41 @@ namespace slacker {
     /**
      * @brief Wrapper around an X Window instance
      * */
-    class SLACKER_EXPORT SlackerWindow {
+    class SLACKER_EXPORT X11Window {
     public:
         /**
          * @brief Default constructor
          * */
-        SlackerWindow() = default;
+        X11Window() = default;
 
         /**
          * @brief Creates a root window.
          *
-         * @param `slacker_conn_ptr` a reference counted connection to the X server.
+         * @param `shared_display_ptr` a reference counted connection to the X server.
          * @param `screen` number of screens on the host
          * */
-        SlackerWindow(SlackerXConnPtr slacker_conn_ptr, int32_t screen);
+        X11Window(SharedXDisplayPtr shared_display_ptr, int32_t screen);
 
         /**
          * @brief Creates a child window
          *
-         * @param `slacker_conn_ptr` a reference counted connection to the X server.
+         * @param `shared_display_ptr` a reference counted connection to the X server.
          * */
-        explicit SlackerWindow(SlackerXConnPtr slacker_conn_ptr);
+        explicit X11Window(SharedXDisplayPtr shared_display_ptr);
 
         /**
          * @brief Unmaps a window if it is mapped, and destroys resources
          * if there were any allocated for this window.
          * */
-        virtual ~SlackerWindow();
+        virtual ~X11Window();
 
         /**
          * @brief Default copy/move constructors and assignment operators
          * */
-        SlackerWindow(const SlackerWindow &other) = default;
-        auto operator=(const SlackerWindow &other) -> SlackerWindow & = default;
-        SlackerWindow(SlackerWindow &&other) = default;
-        auto operator=(SlackerWindow &&other) -> SlackerWindow & = default;
+        X11Window(const X11Window &other) = default;
+        auto operator=(const X11Window &other) -> X11Window & = default;
+        X11Window(X11Window &&other) = default;
+        auto operator=(X11Window &&other) -> X11Window & = default;
 
     public:
         /**
@@ -74,7 +74,7 @@ namespace slacker {
          * @error XCreateSimpleWindow can generate BadAlloc, BadMatch, BadValue, and
          * BadWindow errors.
          * */
-        [[nodiscard]] auto create_window(const SlackerWindow &root_window,
+        [[nodiscard]] auto create_window(const X11Window &root_window,
                                          Rect &&rect, int32_t screen) noexcept
                 -> bool;
         /**
@@ -97,13 +97,12 @@ namespace slacker {
         auto unmap() const noexcept -> void;
 
     private:
-        SlackerXConnPtr m_slacker_conn_ptr{nullptr};
-        bool m_is_mapped{false};
-        bool m_is_root{false};
-        bool m_is_window_alloc{false};
-        Window m_window{0};
+        SharedXDisplayPtr shared_display_ptr_{nullptr};
+        bool is_mapped_{false};
+        bool is_root_{false};
+        bool is_window_alloc_{false};
+        Window window_{0};
     };
-
 }// namespace slacker
 
 #endif

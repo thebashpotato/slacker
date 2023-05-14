@@ -1,24 +1,43 @@
 #include <X11/Xlib.h>
 #include <slacker/display.hpp>
-#include <string_view>
 
 namespace slacker {
-    SlackerDisplay::SlackerDisplay(std::string_view &&name) : m_display(XOpenDisplay(name.data())) {
-        if (this->m_display == nullptr) {
-            this->m_init_failure = true;
+    X11Display::X11Display()
+        : display_(
+                  XOpenDisplay(nullptr),
+                  [](Display *display) { XCloseDisplay(display); }) {}
+
+
+    X11Display::X11Display(X11Display &&other) noexcept : display_(std::move(other.display_)) {}
+
+    auto X11Display::operator=(X11Display &&other) noexcept -> X11Display & {
+        if (this != &other) {
+            display_ = std::move(other.display_);
         }
+        return *this;
     }
 
-    SlackerDisplay::~SlackerDisplay() {
-        if (this->m_display != nullptr) {
-            XCloseDisplay(this->m_display);
-            this->m_display = nullptr;
+    auto X11Display::open() -> std::unique_ptr<X11Display> {
+        auto display = std::make_unique<X11Display>();
+        if (!display->isOpen()) {
+            return nullptr;
         }
+        return display;
     }
 
-    auto SlackerDisplay::get_raw_display() -> Display * { return this->m_display; }
+    auto X11Display::isOpen() const -> bool {
+        return display_ != nullptr;
+    }
 
-    auto SlackerDisplay::init_failure() const noexcept -> bool {
-        return this->m_init_failure;
+    auto X11Display::shared_display() const -> SharedXDisplayPtr {
+        return display_;
+    }
+
+    auto X11Display::raw_display() const -> Display * {
+        return display_.get();
+    }
+
+    auto X11Display::serverVendor() const -> std::string {
+        return XServerVendor(display_.get());
     }
 }// namespace slacker

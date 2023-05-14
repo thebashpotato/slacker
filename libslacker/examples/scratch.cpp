@@ -1,10 +1,18 @@
 #include <iostream>
-#include <slacker/version.hpp>
+#include <slacker.hpp>
+
 
 /**
  * @brief A scratch file for interactively testing code
  * */
 auto main() -> int {
-    std::cout << "Slack Lock: " << slacker::get_version() << '\n';
-    return 0;
+    auto display = slacker::X11Display::open();
+    if (!display) {
+        std::cerr << "Failed to open X Display" << '\n';
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "X11 server vendor: " << display->serverVendor() << '\n';
+
+    return EXIT_SUCCESS;
 }
