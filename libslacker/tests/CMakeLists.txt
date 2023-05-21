@@ -13,7 +13,7 @@ set(PROJECT_UNIT_TEST_NAME "${PROJECT_NAME}_tests")
 #
 # NOTE: Add all test sources to the executable, and any other sources
 #
-add_executable(${PROJECT_UNIT_TEST_NAME} ${APP_TEST_SOURCES} "${APP_SOURCE_DIR}/version.cpp")
+add_executable(${PROJECT_UNIT_TEST_NAME} ${APP_TEST_SOURCES})
 
 #
 # NOTE: Link any libraries we need to the test executable. The most notable being
@@ -23,7 +23,6 @@ target_include_directories(${PROJECT_UNIT_TEST_NAME} PUBLIC ${APP_INCLUDE_DIR})
 target_link_libraries(
   ${PROJECT_UNIT_TEST_NAME}
   PRIVATE project_options
-          project_warnings
           stdc++fs
           gtest
           gtest_main)

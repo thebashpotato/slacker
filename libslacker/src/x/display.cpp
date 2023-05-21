@@ -1,7 +1,7 @@
+#include "slacker/x/display.hpp"
 #include <X11/Xlib.h>
-#include <slacker/display.hpp>
 
-namespace slacker {
+namespace slacker::x {
     X11Display::X11Display()
         : display_(
                   XOpenDisplay(nullptr),
@@ -10,6 +10,7 @@ namespace slacker {
 
     X11Display::X11Display(X11Display &&other) noexcept : display_(std::move(other.display_)) {}
 
+
     auto X11Display::operator=(X11Display &&other) noexcept -> X11Display & {
         if (this != &other) {
             display_ = std::move(other.display_);
@@ -17,43 +18,43 @@ namespace slacker {
         return *this;
     }
 
-    auto X11Display::open() -> std::unique_ptr<X11Display> {
-        auto display = std::make_unique<X11Display>();
-        if (!display->isOpen()) {
-            return nullptr;
-        }
-        return display;
-    }
 
     auto X11Display::isOpen() const -> bool {
         return display_ != nullptr;
     }
 
-    auto X11Display::shared_display() const -> SharedXDisplayPtr {
+
+    auto X11Display::sharedDisplay() const -> SharedXDisplayPtr {
         return display_;
     }
 
-    auto X11Display::raw_display() const -> Display * {
+
+    auto X11Display::rawDisplay() const -> Display * {
         return display_.get();
     }
 
-    auto X11Display::screen_id() const -> int32_t {
+
+    auto X11Display::screenId() const -> int32_t {
         return DefaultScreen(display_.get());
     }
 
-    auto X11Display::screen_count() const -> int32_t {
+
+    auto X11Display::screenCount() const -> int32_t {
         return XScreenCount(display_.get());
     }
 
-    auto X11Display::default_root() const -> Window {
+
+    auto X11Display::defaultRoot() const -> Window {
         return DefaultRootWindow(display_.get());
     }
 
+
     auto X11Display::root() const -> Window {
-        return RootWindow(display_.get(), screen_id());
+        return RootWindow(display_.get(), screenId());
     }
+
 
     auto X11Display::serverVendor() const -> std::string {
         return XServerVendor(display_.get());
     }
-}// namespace slacker
+}// namespace slacker::x

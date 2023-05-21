@@ -3,25 +3,23 @@
 #include <slacker.hpp>
 
 class Application {
-public:
-    Application() = default;
+private:
+    slacker::x::X11Display display_{};
+    slacker::x::X11Window root_{};
 
-    [[nodiscard]] auto setup() noexcept -> bool {
-        display_ = slacker::X11Display::open();
-        if (!display_->isOpen()) {
+public:
+    Application() : root_(display_.sharedDisplay()) {}
+
+
+    [[nodiscard]] auto run() -> bool {
+        if (!display_.isOpen()) {
             return false;
         }
 
-        screen_ = DefaultScreen(display_->raw_display());
-        this->root_ = slacker::X11Window(this->display_->shared_display(), this->screen_);
-        return true;
-    }
-
-    [[nodiscard]] auto run() -> bool {
-        auto window = slacker::X11Window(this->display_->shared_display());
+        auto window = slacker::x::X11Window(this->display_.sharedDisplay());
 
         // Create the simple window
-        if (!window.create_window(this->root_, slacker::Rect(), this->screen_)) {
+        if (!window.createWindow(display_.root(), display_.screenId(), slacker::pure::Rect())) {
             std::cerr << "Could not create the simple window" << '\n';
             return false;
         } else {
@@ -35,7 +33,7 @@ public:
         }
 
         XEvent event;
-        while (XNextEvent(this->display_->raw_display(), &event) == 0) {
+        while (XNextEvent(display_.rawDisplay(), &event) == 0) {
             switch (event.type) {
                 case ButtonPress:
                     return true;
@@ -43,21 +41,12 @@ public:
         }
         return true;
     }
-
-private:
-    int32_t screen_{0};
-    std::unique_ptr<slacker::X11Display> display_{};
-    slacker::X11Window root_{};
 };
 
 
 auto main() -> int {
-    std::cout << "Lib Slacker Version: " << slacker::get_version() << '\n';
+    std::cout << "Lib Slacker Version: " << slacker::utils::getVersion() << '\n';
     auto app = Application();
-
-    if (!app.setup()) {
-        return EXIT_FAILURE;
-    }
 
     if (!app.run()) {
         return EXIT_FAILURE;

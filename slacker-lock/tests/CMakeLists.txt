@@ -13,20 +13,14 @@ set(PROJECT_UNIT_TEST_NAME "${PROJECT_NAME}_tests")
 #
 # NOTE: Add all test sources to the executable, and any other sources
 #
-add_executable(${PROJECT_UNIT_TEST_NAME} ${APP_TEST_SOURCES} ${UTILS_SOURCE_FILES})
+add_executable(${PROJECT_UNIT_TEST_NAME} ${APP_TEST_SOURCES})
 
 #
 # NOTE: Link any libraries we need to the test executable. The most notable being
 # the gtest_main library.
 #
 target_include_directories(${PROJECT_UNIT_TEST_NAME} PUBLIC ${APP_INCLUDE_DIR})
-target_link_libraries(
-  ${PROJECT_UNIT_TEST_NAME}
-  PRIVATE project_options
-          project_warnings
-          stdc++fs
-          gtest
-          gtest_main)
+target_link_libraries(${PROJECT_UNIT_TEST_NAME} PRIVATE gtest gtest_main)
 
 #
 # NOTE: Signal google test to discover all tests

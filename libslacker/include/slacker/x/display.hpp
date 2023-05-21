@@ -1,16 +1,19 @@
-#ifndef SLACKER_DISPLAY_HPP
-#define SLACKER_DISPLAY_HPP
+#ifndef SLACKER_X_DISPLAY_HPP
+#define SLACKER_X_DISPLAY_HPP
 
+#include "slacker/utils/attributes.hpp"
 #include <X11/Xlib.h>
 #include <memory>
-#include <slacker/attributes.hpp>
 
-namespace slacker {
+namespace slacker::x {
     using SharedXDisplayPtr = std::shared_ptr<Display>;
     /**
      * @brief Wraps the most important object in an X program, the Display *
      * */
     class SLACKER_EXPORT X11Display {
+    private:
+        SharedXDisplayPtr display_;
+
     public:
         /**
          * @brief Calls XOpenDisplay, and sets a custom lambda function deleter that
@@ -25,6 +28,7 @@ namespace slacker {
          * */
         X11Display(X11Display &&other) noexcept;
         auto operator=(X11Display &&other) noexcept -> X11Display &;
+
 
         /**
          * @brief  Default destructor
@@ -43,46 +47,48 @@ namespace slacker {
 
     public:
         /**
-         * @brief Used to construct the class
-         * */
-        [[nodiscard]] static auto open() -> std::unique_ptr<X11Display>;
-
-        /**
          * @brief Check if the display opened correctly.
          *
          * @returns false if XOpenDisplay Failed, true for success.
          * */
         [[nodiscard]] auto isOpen() const -> bool;
 
+
         /**
          * @brief Gets the SharedXDisplayPtr
          * */
-        [[nodiscard]] auto shared_display() const -> SharedXDisplayPtr;
+        [[nodiscard]] auto sharedDisplay() const -> SharedXDisplayPtr;
+
 
         /**
          * @brief Gets the raw Display *
          * */
-        [[nodiscard]] auto raw_display() const -> Display *;
+        [[nodiscard]] auto rawDisplay() const -> Display *;
+
 
         /**
          * @brief Gets active screen_id.
          * */
-        [[nodiscard]] auto screen_id() const -> int32_t;
+        [[nodiscard]] auto screenId() const -> int32_t;
+
 
         /**
          * @brief Gets number of screens
          * */
-        [[nodiscard]] auto screen_count() const -> int32_t;
+        [[nodiscard]] auto screenCount() const -> int32_t;
+
 
         /**
          * @brief Gets default root window
          * */
-        [[nodiscard]] auto default_root() const -> Window;
+        [[nodiscard]] auto defaultRoot() const -> Window;
+
 
         /**
          * @brief Gets root window based on screen_id
          * */
         [[nodiscard]] auto root() const -> Window;
+
 
         /**
          * @brief Gets the server vendor for the X11 version that is running
@@ -93,10 +99,7 @@ namespace slacker {
          * Otherwise, the contents of the string are implementation-dependent.
          * */
         [[nodiscard]] auto serverVendor() const -> std::string;
-
-    private:
-        SharedXDisplayPtr display_;
     };
-}// namespace slacker
+}// namespace slacker::x
 
-#endif
+#endif// SLACKER_X_DISPLAY_HPP

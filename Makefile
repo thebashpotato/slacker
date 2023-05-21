@@ -29,7 +29,6 @@ define _uninstall =
 		echo "Removing installed files.."
 		cat build/install_manifest.txt
 		echo
-		sudo xargs rm < build/install_manifest.txt
 	fi
 endef
 

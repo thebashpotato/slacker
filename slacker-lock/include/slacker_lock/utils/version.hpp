@@ -9,17 +9,20 @@
 
 #include <string>
 
-namespace slacker_lock {
+namespace slacker_lock::utils {
     constexpr auto VMAJOR = "0";
     constexpr auto VMINOR = "1";
     constexpr auto VPATCH = "0";
 
     /**
- * @brief return the version in concatenated format
- *
- * @returns std::string
- * */
-    [[maybe_unused]] auto get_version() -> std::string;
-}// namespace slacker_lock
+     * @brief return the version in concatenated format
+     *
+     * @returns std::string
+     * */
+    [[maybe_unused]] inline auto getVersion() -> std::string {
+        return std::string{VMAJOR}.append(".").append(VMINOR).append(".").append(
+                VPATCH);
+    }
+}// namespace slacker_lock::utils
 
 #endif

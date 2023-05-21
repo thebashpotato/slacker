@@ -39,11 +39,8 @@ endif()
 #
 # NOTE: Declare sources
 #
-set(SLACKER_SOURCE_FILES
-    "${APP_SOURCE_DIR}/display.cpp"
-    "${APP_SOURCE_DIR}/window.cpp"
-    "${APP_SOURCE_DIR}/version.cpp"
-    "${APP_SOURCE_DIR}/geometry.cpp")
+set(SLACKER_SOURCE_FILES "${APP_SOURCE_DIR}/x/display.cpp" "${APP_SOURCE_DIR}/x/window.cpp"
+                         "${APP_SOURCE_DIR}/pure/geometry.cpp")
 
 set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES})
 
@@ -52,11 +49,11 @@ set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES})
 #
 if(SLACKER_DEV_MODE)
   # Enable examples
-  message(STATUS "${PACKAGE_NAME} -- Examples Enabled")
+  message(STATUS "${PROJECT_NAME} -- Examples Enabled")
   add_subdirectory("examples")
 
   # Add tests
-  message(STATUS "${PACKAGE_NAME} -- Tests Enabled")
+  message(STATUS "${PROJECT_NAME} -- Tests Enabled")
   add_subdirectory("tests")
 endif()
 

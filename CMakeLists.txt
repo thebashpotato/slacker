@@ -31,7 +31,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 #
 # NOTE: Creates interfaced "libraries" for
-# the custom StandardProjectSettings and CompilerWarnings.
+# The custom StandardProjectSettings and CompilerWarnings.
 # These libraries can then be linked to the tests, examples and
 # release executables to ensure the correct c++ standard is used,
 # and all defined warnings are used.

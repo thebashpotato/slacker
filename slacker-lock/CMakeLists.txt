@@ -2,7 +2,7 @@ project(
   slacker-lock
   VERSION 0.1.0
   DESCRIPTION "Simple screen locker"
-  LANGUAGES CXX C)
+  LANGUAGES CXX)
 
 #
 # NOTE: Set our source and include directory variables for use through the build
@@ -25,8 +25,7 @@ endif()
 #
 # NOTE: Declare sources
 #
-set(UTILS_SOURCE_FILES "${APP_SOURCE_DIR}/utils/version.cpp")
-set(ALL_SOURCE_FILES ${UTILS_SOURCE_FILES} ${SLACKER_SOURCE_FILES} "${APP_SOURCE_DIR}/main.cpp")
+set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES} "${APP_SOURCE_DIR}/main.cpp")
 
 #
 # NOTE: Dependencies specific to libslacker

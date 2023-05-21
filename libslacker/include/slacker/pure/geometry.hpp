@@ -1,10 +1,10 @@
 #ifndef SLACKER_GEOMETRY_HPP
 #define SLACKER_GEOMETRY_HPP
 
+#include "slacker/utils/attributes.hpp"
 #include <cstdint>
-#include <slacker/attributes.hpp>
 
-namespace slacker {
+namespace slacker::pure {
     /**
      * @brief Default values for default constructor
      * */
@@ -21,8 +21,8 @@ namespace slacker {
     public:
         Rect() = default;
 
-        [[maybe_unused]] Rect(int32_t pos_x, int32_t pos_y, uint32_t width, uint32_t height,
-                              uint32_t border);
+        [[maybe_unused]] Rect(int32_t pos_x, int32_t pos_y, int32_t width, int32_t height,
+                              int32_t border);
 
     public:
         int32_t xaxis_pos{WINDOW_XAXIS_POS};
@@ -31,5 +31,6 @@ namespace slacker {
         uint32_t height{WINDOW_HEIGHT};
         uint32_t border{WINDOW_BORDER};
     };
-}// namespace slacker
+}// namespace slacker::pure
+
 #endif// SLACKER_GEOMETRY_HPP

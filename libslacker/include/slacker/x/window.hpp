@@ -1,45 +1,48 @@
 #ifndef SLACKER_WINDOW_HPP
 #define SLACKER_WINDOW_HPP
 
+#include "slacker/utils/attributes.hpp"
+#include "slacker/x/display.hpp"
 #include <X11/Xlib.h>
 #include <cstdint>
 #include <memory>
-#include <slacker/attributes.hpp>
-#include <slacker/display.hpp>
 
-namespace slacker {
+namespace slacker::pure {
     class Rect;
+}
 
+namespace slacker::x {
     /**
      * @brief Wrapper around an X Window instance
      * */
     class SLACKER_EXPORT X11Window {
+    private:
+        SharedXDisplayPtr sharedDpyPtr_{nullptr};
+        bool isMapped_{false};
+        bool isAllocated_{false};
+        Window window_{0};
+
     public:
         /**
          * @brief Default constructor
          * */
-        X11Window() = default;
+        X11Window() noexcept = default;
 
-        /**
-         * @brief Creates a screen_id window.
-         *
-         * @param `shared_display_ptr` a reference counted connection to the X server.
-         * @param `screen` number of screens on the host
-         * */
-        X11Window(SharedXDisplayPtr shared_display_ptr, int32_t screen);
 
         /**
          * @brief Creates a child window
          *
-         * @param `shared_display_ptr` a reference counted connection to the X server.
+         * @param `sharedDpyPtr` a reference counted connection to the X server.
          * */
-        explicit X11Window(SharedXDisplayPtr shared_display_ptr);
+        explicit X11Window(SharedXDisplayPtr sharedDpyPtr) noexcept;
+
 
         /**
          * @brief Unmaps a window if it is mapped, and destroys resources
          * if there were any allocated for this window.
          * */
         virtual ~X11Window();
+
 
         /**
          * @brief Default copy/move constructors and assignment operators
@@ -55,28 +58,23 @@ namespace slacker {
          *
          * @returns a copy of the window id
          * */
-        [[nodiscard]] auto get_window() const noexcept -> Window;
+        [[nodiscard]] auto getWindow() const noexcept -> Window;
 
-        /**
-         * @brief Is this window the screen_id window.
-         * */
-        [[nodiscard]] auto is_root() const noexcept -> bool;
 
-    public:
         /**
          * @brief Wrapper around XCreateWindow
          *
-         * @param `root_window` The screen_id window instance from which this window will
-         * be a child of.
-         * @param `rect` Window geometry object
+         * @param `root_window` X11 root window id of which this window will be a child of
          * @param `screen` number of screens for the host
+         * @param `rect` Window geometry object
          *
          * @error XCreateSimpleWindow can generate BadAlloc, BadMatch, BadValue, and
          * BadWindow errors.
          * */
-        [[nodiscard]] auto create_window(const X11Window &root_window,
-                                         Rect &&rect, int32_t screen) noexcept
-                -> bool;
+        [[nodiscard]] auto createWindow(Window root_window, int32_t screen,
+                                        pure::Rect &&rect) noexcept -> bool;
+
+
         /**
          * @brief Wrapper around XUnmapWindow.
          *
@@ -88,6 +86,7 @@ namespace slacker {
          * */
         [[nodiscard]] auto map() noexcept -> bool;
 
+
         /**
          * @brief Wrapper around XUnmapWindow
          *
@@ -95,14 +94,7 @@ namespace slacker {
          * that happens in the Destructor
          * */
         auto unmap() const noexcept -> void;
-
-    private:
-        SharedXDisplayPtr shared_display_ptr_{nullptr};
-        bool is_mapped_{false};
-        bool is_root_{false};
-        bool is_window_alloc_{false};
-        Window window_{0};
     };
-}// namespace slacker
+}// namespace slacker::x
 
 #endif
