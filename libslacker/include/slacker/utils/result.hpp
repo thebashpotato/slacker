@@ -68,4 +68,4 @@ namespace slacker::utils {
     };
 }// namespace slacker::utils
 
-#endif  // SLACKER_UTILS_RESULT_HPP
+#endif// SLACKER_UTILS_RESULT_HPP

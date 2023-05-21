@@ -92,4 +92,5 @@ endif()
 # NOTE: Add sub-projects to the project
 #
 add_subdirectory("libslacker")
+add_subdirectory("slacker-wm")
 add_subdirectory("slacker-lock")

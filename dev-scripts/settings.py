@@ -15,8 +15,9 @@ PROJECT_BUILD_DIR = PROJECT_ROOT / "build"
 
 # All c++ projects must be added to this list
 PROJECTS: List[Path] = [
-    PROJECT_ROOT / "slacker-lock",
     PROJECT_ROOT / "libslacker",
+    PROJECT_ROOT / "slacker-wm",
+    PROJECT_ROOT / "slacker-lock",
 ]
 
 # Package configurations, used for building a debian, slackware, or rpm package,
@@ -26,7 +27,7 @@ PACKAGE_CONFIG: Dict[str, str] = {
     "LICENSE": "GPL-3.0",
     "MAINTAINER": "thebashpotato",
     "REQUIRES": "libx11-dev libx11-xcb-dev libx11-xcb1 libx11-6",
-    "RELEASE": f"{distro.codename()}-{distro.version()}"
+    "RELEASE": f"{distro.codename()}-{distro.version()}",
 }
 
 # Cmake stuff
@@ -45,36 +46,29 @@ CMAKE_PROGRAMS: Dict[str, Dict[str, str]] = {
         "flags": "-D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang",
     },
     # customize formatting and clang tidy through the flags
-    "CLANG_FORMATTER": {
-        "name": "clang-format",
-        "flags": "-i"
-    },
-    "CMAKE_FORMATTER": {
-        "name": "cmake-format",
-        "flags": "-i"
-    },
+    "CLANG_FORMATTER": {"name": "clang-format", "flags": "-i"},
+    "CMAKE_FORMATTER": {"name": "cmake-format", "flags": "-i"},
     "CLANG_ANALYZER": {
         "name": "clang-tidy",
-        "flags": f"-p {PROJECT_BUILD_DIR} -header-filter=.* --config-file={PROJECT_ROOT / '.clang-tidy'}"
+        "flags": f"-p {PROJECT_BUILD_DIR} -header-filter=.* --config-file={PROJECT_ROOT / '.clang-tidy'}",
     },
 }
 
 # Files that should be ignored for clang-format
-CLANG_FORMAT_IGNORE_FILE: List[Path] = [
-]
+CLANG_FORMAT_IGNORE_FILE: List[Path] = []
 
 # Useful for 3rd party bundled projects, unit testing and example code
-CLANG_FORMAT_IGNORE_DIR: List[Path] = [
-]
+CLANG_FORMAT_IGNORE_DIR: List[Path] = []
 
 # Files that should be ignored for clang-tidy
-CLANG_TIDY_IGNORE_FILE: List[Path] = [
-]
+CLANG_TIDY_IGNORE_FILE: List[Path] = []
 
 # Useful for 3rd party bundled projects, unit testing and example code
 CLANG_TIDY_IGNORE_DIR: List[Path] = [
-    PROJECT_ROOT / 'slacker-lock' / 'tests',
-    PROJECT_ROOT / 'slacker-lock' / 'examples',
-    PROJECT_ROOT / 'libslacker' / 'tests',
-    PROJECT_ROOT / 'libslacker' / 'examples',
+    PROJECT_ROOT / "slacker-wm" / "tests",
+    PROJECT_ROOT / "slacker-wm" / "examples",
+    PROJECT_ROOT / "slacker-lock" / "tests",
+    PROJECT_ROOT / "slacker-lock" / "examples",
+    PROJECT_ROOT / "libslacker" / "tests",
+    PROJECT_ROOT / "libslacker" / "examples",
 ]
