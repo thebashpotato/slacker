@@ -27,7 +27,7 @@ option(SLACKER_DEV_MODE "Enables testing and example builds for all projects" ON
 #
 # NOTE: Add our custom cmake modules to the cmake module path
 #
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 #
 # NOTE: Creates interfaced "libraries" for
@@ -54,7 +54,15 @@ set_project_warnings(project_warnings)
 #
 # NOTE: FindPackage and CPM (Dependencies needed by all projects are defined at this level only.
 #
+
+# NOTE: https://cmake.org/cmake/help/latest/module/FindX11.html
 find_package(X11 REQUIRED)
+
+# NOTE: https://cmake.org/cmake/help/latest/module/FindFontconfig.html
+find_package(Fontconfig REQUIRED)
+
+# NOTE: https://cmake.org/cmake/help/latest/module/FindFreetype.html
+find_package(Freetype REQUIRED)
 
 if(SLACKER_DEV_MODE)
   # Enable examples
@@ -62,7 +70,7 @@ if(SLACKER_DEV_MODE)
       Debug
       CACHE STRING "Forcing build type to debug" FORCE)
 
-  # Bring in Gtest Unit testing library
+  # NOTE: Bring in Gtest Unit testing library
   cpmaddpackage(
     NAME
     googletest

@@ -5,6 +5,6 @@
  * @brief A scratch file for interactively testing code
  * */
 auto main() -> int {
-    std::cout << "Slack Lock: " << slacker_lock::utils::getVersion() << '\n';
+    std::cout << "Slacker Lock: " << slacker_lock::utils::getVersion() << '\n';
     return 0;
 }

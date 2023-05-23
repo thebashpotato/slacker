@@ -44,11 +44,11 @@ list:
 	@$(call _list)
 
 # Build in release mode, full optimizations, no debugging
-rel: clean
+rel:
 	@${DEVKIT} build --release
 
 # Build in debugging mode with all debugging symbols, unit tests and examples.
-dev: clean
+dev:
 	@${DEVKIT} build --develop
 
 # format recursively with clang-format

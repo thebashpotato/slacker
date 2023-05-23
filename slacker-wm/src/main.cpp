@@ -3,7 +3,6 @@
 #include <iostream>
 
 auto main() -> int {
-    std::cout << "Slacker Lock Version: " << slacker_wm::utils::getVersion() << '\n';
-
+    std::cout << "Slacker Window Manager: " << slacker_wm::utils::getVersion() << '\n';
     return EXIT_SUCCESS;
 }

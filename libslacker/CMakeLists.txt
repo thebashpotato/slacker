@@ -39,8 +39,11 @@ endif()
 #
 # NOTE: Declare sources
 #
-set(SLACKER_SOURCE_FILES "${APP_SOURCE_DIR}/x/display.cpp" "${APP_SOURCE_DIR}/x/window.cpp"
-                         "${APP_SOURCE_DIR}/pure/geometry.cpp")
+set(SLACKER_SOURCE_FILES
+    "${APP_SOURCE_DIR}/x/display.cpp"
+    "${APP_SOURCE_DIR}/x/window.cpp"
+    "${APP_SOURCE_DIR}/x/font.cpp"
+    "${APP_SOURCE_DIR}/pure/geometry.cpp")
 
 set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES})
 

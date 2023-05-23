@@ -1,6 +1,7 @@
 #ifndef SLACKER_UTILS_RESULT_HPP
 #define SLACKER_UTILS_RESULT_HPP
 
+#include "slacker/utils/attributes.hpp"
 #include <functional>
 #include <optional>
 #include <variant>
@@ -8,10 +9,20 @@
 namespace slacker::utils {
 
     /**
+     * @brief Empty stub type for when the user wants a result with an Ok type
+     * with no value, since c++ doesn't have rusts () type, this is my workaround.
+     *
+     * In Rust it would be Result<(), String>,
+     * Converted into this c++ class would be,
+     * Result<Void, std::string>;
+     * */
+    class SLACKER_EXPORT Void {};
+
+    /**
      * @brief Generic Result type modeled after the Rust lanaguage's Result<T, E>
      * */
     template<typename T, typename E>
-    class Result {
+    class SLACKER_EXPORT Result {
     private:
         std::variant<T, E> result_;
         bool isOk_;

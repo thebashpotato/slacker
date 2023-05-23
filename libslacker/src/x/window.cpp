@@ -5,15 +5,15 @@
 #include <utility>
 
 namespace slacker::x {
-    X11Window::X11Window(SharedXDisplayPtr sharedDpyPtr) noexcept
-        : sharedDpyPtr_(std::move(sharedDpyPtr)) {}
+    X11Window::X11Window(SharedX11DisplayPtr sharedDpyPtr) noexcept
+        : display_(std::move(sharedDpyPtr)) {}
 
 
     X11Window::~X11Window() {
-        this->unmap();
+        unmap();
         if (isAllocated_ && window_ != 0) {
             // TODO: Check Return code
-            XDestroyWindow(sharedDpyPtr_.get(), window_);
+            XDestroyWindow(display_->raw(), window_);
             window_ = 0;
         }
     }
@@ -24,20 +24,20 @@ namespace slacker::x {
     }
 
 
-    auto X11Window::createWindow(Window root_window, int32_t screen, pure::Rect &&rect) noexcept -> bool {
+    auto X11Window::createWindow(pure::Rect &&rect) noexcept -> bool {
         XSetWindowAttributes xwa;
         xwa.background_pixel =
-                WhitePixel(sharedDpyPtr_.get(), screen);
+                WhitePixel(display_->raw(), display_->screenId());
         xwa.border_pixel =
-                BlackPixel(sharedDpyPtr_.get(), screen);
+                BlackPixel(display_.get(), display_->screenId());
         xwa.event_mask = ButtonPress;
 
         window_ = XCreateWindow(
-                sharedDpyPtr_.get(), root_window,
-                rect.xaxis_pos, rect.yaxis_pos, rect.width, rect.height, rect.border,
-                DefaultDepth(sharedDpyPtr_.get(), screen),
+                display_->raw(), display_->root(),
+                rect.xpos(), rect.ypos(), rect.width(), rect.height(), 0,
+                DefaultDepth(display_->raw(), display_->screenId()),
                 InputOutput,
-                DefaultVisual(sharedDpyPtr_.get(), screen),
+                DefaultVisual(display_->raw(), display_->screenId()),
                 CWBackPixel | CWBorderPixel | CWEventMask, &xwa);
 
         // TODO: X return codes need to be wrapped
@@ -48,11 +48,11 @@ namespace slacker::x {
 
     auto X11Window::map() noexcept -> bool {
         if (!isMapped_) {
-            if ((XMapWindow(sharedDpyPtr_.get(),
+            if ((XMapWindow(display_->raw(),
                             window_)) == BadWindow) {
                 return false;
             }
-            this->isMapped_ = true;
+            isMapped_ = true;
         }
         return true;
     }
@@ -60,7 +60,7 @@ namespace slacker::x {
 
     auto X11Window::unmap() const noexcept -> void {
         if (isMapped_) {
-            XUnmapWindow(sharedDpyPtr_.get(), this->window_);
+            XUnmapWindow(display_->raw(), window_);
         }
     }
 

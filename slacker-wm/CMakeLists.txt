@@ -2,7 +2,7 @@ project(
   slacker-wm
   VERSION 0.1.0
   DESCRIPTION "X Window Manager"
-  LANGUAGES CXX)
+  LANGUAGES CXX C)
 
 #
 # NOTE: Set our source and include directory variables for use through the build
@@ -25,7 +25,7 @@ endif()
 #
 # NOTE: Declare sources
 #
-set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES} "${APP_SOURCE_DIR}/main.cpp")
+set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES} "${APP_SOURCE_DIR}/draw.cpp" "${APP_SOURCE_DIR}/main.cpp")
 
 #
 # NOTE: Dependencies specific to slacker-wm
