@@ -5,8 +5,8 @@
 #include <utility>
 
 namespace slacker::x {
-    X11Window::X11Window(SharedX11DisplayPtr sharedDpyPtr) noexcept
-        : display_(std::move(sharedDpyPtr)) {}
+    X11Window::X11Window(SharedX11DisplayPtr display) noexcept
+        : display_(std::move(display)) {}
 
 
     X11Window::~X11Window() {
@@ -29,7 +29,7 @@ namespace slacker::x {
         xwa.background_pixel =
                 WhitePixel(display_->raw(), display_->screenId());
         xwa.border_pixel =
-                BlackPixel(display_.get(), display_->screenId());
+                BlackPixel(display_->raw(), display_->screenId());
         xwa.event_mask = ButtonPress;
 
         window_ = XCreateWindow(

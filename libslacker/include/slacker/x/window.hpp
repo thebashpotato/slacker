@@ -35,7 +35,7 @@ namespace slacker::x {
          *
          * @param `sharedDpyPtr` a reference counted connection to the X server.
          * */
-        explicit X11Window(SharedX11DisplayPtr sharedDpyPtr) noexcept;
+        explicit X11Window(SharedX11DisplayPtr display) noexcept;
 
 
         /**
