@@ -6,7 +6,7 @@
 
 class Application {
 private:
-    slacker::x::SharedX11DisplayPtr display_{};
+    slacker::x::SharedX11DisplayPtr display_{nullptr};
     slacker::x::X11Window window_{};
 
 public:

@@ -17,8 +17,8 @@ target_include_directories(
 
 target_link_libraries(
   ${PROJECT_NAME}
-  PRIVATE project_options
-          project_warnings
+  PRIVATE slacker_project_options
+          slacker_project_warnings
           stdc++fs
           ${X11_LIBRARIES}
           ${Fontconfig_LIBRARIES}

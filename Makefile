@@ -60,7 +60,7 @@ tidy:
 	@${DEVKIT} clang --tidy
 
 tests: dev
-	@cd build/app && ctest
+	@cd build && ctest
 
 install: rel
 	@sudo cmake --install build

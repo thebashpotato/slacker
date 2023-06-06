@@ -8,22 +8,15 @@ message(STATUS "Building ${PROJECT_NAME} [${CMAKE_BUILD_TYPE}]")
 #
 add_executable(${PROJECT_NAME} ${ALL_SOURCE_FILES})
 
-target_include_directories(
-  ${PROJECT_NAME}
-  PUBLIC ${APP_INCLUDE_DIR}
-         ${X11_INCLUDE_DIR}
-         ${Fontconfig_INCLUDE_DIRS}
-         ${FREETYPE_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${APP_INCLUDE_DIR} ${X11_INCLUDE_DIR})
 
 target_link_libraries(
   ${PROJECT_NAME}
-  PRIVATE project_options
-          project_warnings
+  PRIVATE slacker_project_options
+          slacker_project_warnings
           stdc++fs
           ${LIB_SLACKER}
-          ${X11_LIBRARIES}
-          ${Fontconfig_LIBRARIES}
-          ${FREETYPE_LIBRARIES})
+          ${X11_LIBRARIES})
 
 #
 # NOTE: Generate install command for resulting Makefile

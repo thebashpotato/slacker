@@ -4,7 +4,7 @@
 namespace slacker::pure {
 
     Rect::Rect(Xposition xpos, Yposition ypos, Width width, Height height) noexcept
-        : xpos_(xpos), ypos_(ypos), width_(width), height_(height) {}
+        : xpos_(std::move(xpos)), ypos_(std::move(ypos)), width_(std::move(width)), height_(std::move(height)) {}
 
 
     auto Rect::xpos() const noexcept -> int32_t {

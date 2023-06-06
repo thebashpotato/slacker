@@ -24,7 +24,7 @@ namespace slacker::x {
 
     X11Font::~X11Font() {
         if (xfont_ != nullptr) {
-            //XftFontClose(display_->raw(), xfont_);
+            XftFontClose(display_->raw(), xfont_);
         }
         if (pattern_ != nullptr) {
             FcPatternDestroy(pattern_);

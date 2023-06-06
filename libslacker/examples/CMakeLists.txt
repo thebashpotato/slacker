@@ -23,8 +23,8 @@ target_include_directories(
 
 target_link_libraries(
   ${ScratchFile}
-  PRIVATE project_options
-          project_warnings
+  PRIVATE slacker_project_options
+          slacker_project_warnings
           stdc++fs
           ${X11_LIBRARIES}
           ${Fontconfig_LIBRARIES}
@@ -32,8 +32,8 @@ target_link_libraries(
 
 target_link_libraries(
   ${SimpleWindow}
-  PRIVATE project_options
-          project_warnings
+  PRIVATE slacker_project_options
+          slacker_project_warnings
           stdc++fs
           ${X11_LIBRARIES}
           ${Fontconfig_LIBRARIES}

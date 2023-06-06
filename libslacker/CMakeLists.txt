@@ -22,6 +22,8 @@ set(APP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(APP_TEST_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 set(APP_EXAMPLES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples")
 
+set(CMAKE_CXX_FLAGS "-lXft")
+
 #
 # NOTE: Prevent in source builds (can't build in src/ or in project screen_id)
 #

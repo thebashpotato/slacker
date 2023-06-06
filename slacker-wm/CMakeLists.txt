@@ -2,7 +2,7 @@ project(
   slacker-wm
   VERSION 0.1.0
   DESCRIPTION "X Window Manager"
-  LANGUAGES CXX C)
+  LANGUAGES CXX)
 
 #
 # NOTE: Set our source and include directory variables for use through the build

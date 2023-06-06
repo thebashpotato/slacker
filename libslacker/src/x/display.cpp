@@ -1,5 +1,4 @@
 #include "slacker/x/display.hpp"
-#include "slacker/utils/result.hpp"
 #include <X11/Xlib.h>
 
 namespace slacker::x {
@@ -20,12 +19,12 @@ namespace slacker::x {
     }
 
 
-    auto X11Display::open() -> utils::Result<SharedX11DisplayPtr, utils::Void> {
+    auto X11Display::open() -> etl::Result<SharedX11DisplayPtr, etl::Void> {
         auto display = std::make_shared<X11Display>();
         if (display->isOpen()) {
-            return utils::Result<SharedX11DisplayPtr, utils::Void>(std::move(display));
+            return etl::Result<SharedX11DisplayPtr, etl::Void>(std::move(display));
         }
-        return utils::Result<SharedX11DisplayPtr, utils::Void>(utils::Void());
+        return etl::Result<SharedX11DisplayPtr, etl::Void>(etl::Void());
     }
 
 

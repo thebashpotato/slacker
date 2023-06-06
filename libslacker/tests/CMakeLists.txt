@@ -22,7 +22,7 @@ add_executable(${PROJECT_UNIT_TEST_NAME} ${APP_TEST_SOURCES})
 target_include_directories(${PROJECT_UNIT_TEST_NAME} PUBLIC ${APP_INCLUDE_DIR})
 target_link_libraries(
   ${PROJECT_UNIT_TEST_NAME}
-  PRIVATE project_options
+  PRIVATE slacker_project_options
           stdc++fs
           gtest
           gtest_main)

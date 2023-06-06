@@ -2,7 +2,7 @@
 #define SLACKER_GEOMETRY_HPP
 
 #include "slacker/utils/attributes.hpp"
-#include "slacker/utils/tagged_type.hpp"
+#include "slacker/vendor/etl.hpp"
 #include <cstdint>
 #include <stack>
 
@@ -29,10 +29,10 @@ namespace slacker::pure {
         class HeightTag {};
     }// namespace detail
 
-    using Xposition = utils::TaggedFundamental<detail::XpositionTag, int32_t>;
-    using Yposition = utils::TaggedFundamental<detail::YpositionTag, int32_t>;
-    using Width = utils::TaggedFundamental<detail::WidthTag, uint32_t>;
-    using Height = utils::TaggedFundamental<detail::HeightTag, uint32_t>;
+    using Xposition = etl::TaggedFundamental<detail::XpositionTag, int32_t>;
+    using Yposition = etl::TaggedFundamental<detail::YpositionTag, int32_t>;
+    using Width = etl::TaggedFundamental<detail::WidthTag, uint32_t>;
+    using Height = etl::TaggedFundamental<detail::HeightTag, uint32_t>;
 
 
     /**

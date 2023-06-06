@@ -2,8 +2,7 @@
 #define SLACKER_X_DISPLAY_HPP
 
 #include "slacker/utils/attributes.hpp"
-#include "slacker/utils/result.hpp"
-#include "slacker/utils/tagged_type.hpp"
+#include "slacker/vendor/etl.hpp"
 #include <X11/Xlib.h>
 #include <cstdint>
 #include <memory>
@@ -14,7 +13,7 @@ namespace slacker::x {
         class ScreenIdTag {};
     }// namespace detail
 
-    using ScreenId = utils::TaggedFundamental<detail::ScreenIdTag, int32_t>;
+    using ScreenId = etl::TaggedFundamental<detail::ScreenIdTag, int32_t>;
 
     class X11Display;
     using SharedX11DisplayPtr = std::shared_ptr<X11Display>;
@@ -62,7 +61,7 @@ namespace slacker::x {
         /**
          * @brief Gets a shared instace to X11Display interface
          * */
-        [[nodiscard]] static auto open() -> utils::Result<SharedX11DisplayPtr, utils::Void>;
+        [[nodiscard]] static auto open() -> etl::Result<SharedX11DisplayPtr, etl::Void>;
 
 
         /**

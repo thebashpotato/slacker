@@ -20,7 +20,7 @@ add_executable(${PROJECT_UNIT_TEST_NAME} ${APP_TEST_SOURCES})
 # the gtest_main library.
 #
 target_include_directories(${PROJECT_UNIT_TEST_NAME} PUBLIC ${APP_INCLUDE_DIR})
-target_link_libraries(${PROJECT_UNIT_TEST_NAME} PRIVATE gtest gtest_main)
+target_link_libraries(${PROJECT_UNIT_TEST_NAME} PRIVATE slacker_project_options gtest gtest_main)
 
 #
 # NOTE: Signal google test to discover all tests
