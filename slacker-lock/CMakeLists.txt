@@ -28,7 +28,7 @@ endif()
 set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES} "${APP_SOURCE_DIR}/main.cpp")
 
 #
-# NOTE: Dependencies specific to libslacker
+# NOTE: Dependencies specific to slacker-lock
 #
 
 #

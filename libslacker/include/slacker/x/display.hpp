@@ -2,17 +2,28 @@
 #define SLACKER_X_DISPLAY_HPP
 
 #include "slacker/utils/attributes.hpp"
+#include "slacker/vendor/etl.hpp"
 #include <X11/Xlib.h>
+#include <cstdint>
 #include <memory>
 
 namespace slacker::x {
-    using SharedXDisplayPtr = std::shared_ptr<Display>;
+
+    namespace detail {
+        class ScreenIdTag {};
+    }// namespace detail
+
+    using ScreenId = etl::TaggedFundamental<detail::ScreenIdTag, int32_t>;
+
+    class X11Display;
+    using SharedX11DisplayPtr = std::shared_ptr<X11Display>;
+
     /**
      * @brief Wraps the most important object in an X program, the Display *
      * */
     class SLACKER_EXPORT X11Display {
     private:
-        SharedXDisplayPtr display_;
+        std::shared_ptr<Display> display_;
 
     public:
         /**
@@ -24,13 +35,6 @@ namespace slacker::x {
         X11Display();
 
         /**
-         * @brief default move constructor and assignment
-         * */
-        X11Display(X11Display &&other) noexcept;
-        auto operator=(X11Display &&other) noexcept -> X11Display &;
-
-
-        /**
          * @brief  Default destructor
          *
          * @details Since a custom lambda deleter is used in the constructor,
@@ -38,6 +42,14 @@ namespace slacker::x {
          * is guaranteed to be cleaned up.
          **/
         virtual ~X11Display() = default;
+
+
+        /**
+         * @brief Move constructor and assignment
+         * */
+        X11Display(X11Display &&other) noexcept;
+        auto operator=(X11Display &&other) noexcept -> X11Display &;
+
 
         /**
          * @brief Disallow copying
@@ -47,6 +59,12 @@ namespace slacker::x {
 
     public:
         /**
+         * @brief Gets a shared instace to X11Display interface
+         * */
+        [[nodiscard]] static auto open() -> etl::Result<SharedX11DisplayPtr, etl::Void>;
+
+
+        /**
          * @brief Check if the display opened correctly.
          *
          * @returns false if XOpenDisplay Failed, true for success.
@@ -55,15 +73,9 @@ namespace slacker::x {
 
 
         /**
-         * @brief Gets the SharedXDisplayPtr
+         * @brief Gets the underlying raw Display *
          * */
-        [[nodiscard]] auto sharedDisplay() const -> SharedXDisplayPtr;
-
-
-        /**
-         * @brief Gets the raw Display *
-         * */
-        [[nodiscard]] auto rawDisplay() const -> Display *;
+        [[nodiscard]] auto raw() const -> Display *;
 
 
         /**
@@ -85,7 +97,7 @@ namespace slacker::x {
 
 
         /**
-         * @brief Gets root window based on screen_id
+         * @brief Gets root window based on the current screenId
          * */
         [[nodiscard]] auto root() const -> Window;
 
@@ -100,6 +112,7 @@ namespace slacker::x {
          * */
         [[nodiscard]] auto serverVendor() const -> std::string;
     };
+
 }// namespace slacker::x
 
 #endif// SLACKER_X_DISPLAY_HPP

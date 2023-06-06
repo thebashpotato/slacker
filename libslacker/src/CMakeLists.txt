@@ -8,13 +8,21 @@ message(STATUS "Building ${PROJECT_NAME} [${CMAKE_BUILD_TYPE}]")
 #
 add_library(${PROJECT_NAME} SHARED ${ALL_SOURCE_FILES})
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${APP_INCLUDE_DIR} ${X11_INCLUDE_DIR})
+target_include_directories(
+  ${PROJECT_NAME}
+  PUBLIC ${APP_INCLUDE_DIR}
+         ${X11_INCLUDE_DIR}
+         ${FREETYPE_INCLUDE_DIRS}
+         ${Fontconfig_INCLUDE_DIRS})
+
 target_link_libraries(
   ${PROJECT_NAME}
-  PRIVATE project_options
-          project_warnings
+  PRIVATE slacker_project_options
+          slacker_project_warnings
           stdc++fs
-          ${X11_LIBRARIES})
+          ${X11_LIBRARIES}
+          ${Fontconfig_LIBRARIES}
+          ${FREETYPE_LIBRARIES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})

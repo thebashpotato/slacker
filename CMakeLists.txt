@@ -11,7 +11,7 @@ project(
   VERSION 0.1.0
   DESCRIPTION "Window Manager environment in modern C++"
   HOMEPAGE_URL "https://github.com/thebashpotato/slacker"
-  LANGUAGES CXX C)
+  LANGUAGES CXX)
 
 #
 # NOTE: Set the C++ standard
@@ -27,18 +27,7 @@ option(SLACKER_DEV_MODE "Enables testing and example builds for all projects" ON
 #
 # NOTE: Add our custom cmake modules to the cmake module path
 #
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-#
-# NOTE: Creates interfaced "libraries" for
-# The custom StandardProjectSettings and CompilerWarnings.
-# These libraries can then be linked to the tests, examples and
-# release executables to ensure the correct c++ standard is used,
-# and all defined warnings are used.
-#
-add_library(project_options INTERFACE)
-target_compile_features(project_options INTERFACE cxx_std_${CMAKE_CXX_STANDARD})
-add_library(project_warnings INTERFACE)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 #
 # NOTE: Include custom cmake dev-scripts, and the CPM package manager
@@ -49,12 +38,31 @@ include(StandardProjectSettings)
 include(StaticAnalyzers)
 include(CompilerWarnings)
 include(GNUInstallDirs)
-set_project_warnings(project_warnings)
+
+#
+# NOTE: Creates interfaced "libraries" for
+# The custom StandardProjectSettings and CompilerWarnings.
+# These libraries can then be linked to the tests, examples and
+# release executables to ensure the correct c++ standard is used,
+# and all defined warnings are used.
+#
+add_library(slacker_project_options INTERFACE)
+target_compile_features(slacker_project_options INTERFACE cxx_std_${CMAKE_CXX_STANDARD})
+add_library(slacker_project_warnings INTERFACE)
+set_project_warnings(slacker_project_warnings)
 
 #
 # NOTE: FindPackage and CPM (Dependencies needed by all projects are defined at this level only.
 #
+
+# NOTE: https://cmake.org/cmake/help/latest/module/FindX11.html
 find_package(X11 REQUIRED)
+
+# NOTE: https://cmake.org/cmake/help/latest/module/FindFontconfig.html
+find_package(Fontconfig REQUIRED)
+
+# NOTE: https://cmake.org/cmake/help/latest/module/FindFreetype.html
+find_package(Freetype REQUIRED)
 
 if(SLACKER_DEV_MODE)
   # Enable examples
@@ -62,7 +70,7 @@ if(SLACKER_DEV_MODE)
       Debug
       CACHE STRING "Forcing build type to debug" FORCE)
 
-  # Bring in Gtest Unit testing library
+  # NOTE: Bring in Gtest Unit testing library
   cpmaddpackage(
     NAME
     googletest
@@ -92,4 +100,5 @@ endif()
 # NOTE: Add sub-projects to the project
 #
 add_subdirectory("libslacker")
+add_subdirectory("slacker-wm")
 add_subdirectory("slacker-lock")

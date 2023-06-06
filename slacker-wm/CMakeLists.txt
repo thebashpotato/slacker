@@ -1,18 +1,8 @@
 project(
-  slacker
+  slacker-wm
   VERSION 0.1.0
-  DESCRIPTION "C++ X lib wrapper consumed by all slacker binaries"
-  LANGUAGES CXX C)
-
-#
-# NOTE: Set the name of the library in the top level `CMakeLists.txt` file
-# This allows consuming binaries to to use `LIB_SLACKER` to link against
-# when compiling in debugging mode locally, in other words libslacker is not installed
-# globally on the system
-#
-set(LIB_SLACKER
-    ${PROJECT_NAME}
-    PARENT_SCOPE)
+  DESCRIPTION "X Window Manager"
+  LANGUAGES CXX)
 
 #
 # NOTE: Set our source and include directory variables for use through the build
@@ -22,10 +12,8 @@ set(APP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(APP_TEST_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 set(APP_EXAMPLES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples")
 
-set(CMAKE_CXX_FLAGS "-lXft")
-
 #
-# NOTE: Prevent in source builds (can't build in src/ or in project screen_id)
+# NOTE: Prevent in source builds (can't build in src/ or in project root)
 #
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR OR CMAKE_CURRENT_BINARY_DIR STREQUAL APP_SOURCE_DIR)
   message(
@@ -35,19 +23,13 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR OR CMAKE_CURRENT_B
 endif()
 
 #
-# NOTE: Dependencies specific to libslacker
-#
-
-#
 # NOTE: Declare sources
 #
-set(SLACKER_SOURCE_FILES
-    "${APP_SOURCE_DIR}/x/display.cpp"
-    "${APP_SOURCE_DIR}/x/window.cpp"
-    "${APP_SOURCE_DIR}/x/font.cpp"
-    "${APP_SOURCE_DIR}/pure/geometry.cpp")
+set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES} "${APP_SOURCE_DIR}/draw.cpp" "${APP_SOURCE_DIR}/main.cpp")
 
-set(ALL_SOURCE_FILES ${SLACKER_SOURCE_FILES})
+#
+# NOTE: Dependencies specific to slacker-wm
+#
 
 #
 # NOTE: If dev mode is enabled

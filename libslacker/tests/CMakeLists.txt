@@ -8,7 +8,7 @@ set(APP_TEST_SOURCES "${APP_TEST_SOURCE_DIR}/version_test.cpp")
 #
 # NOTE: Declare a custom name for the test executable
 #
-set(PROJECT_UNIT_TEST_NAME "${PROJECT_NAME}_tests")
+set(PROJECT_UNIT_TEST_NAME "${PROJECT_NAME}-tests")
 
 #
 # NOTE: Add all test sources to the executable, and any other sources
@@ -22,7 +22,7 @@ add_executable(${PROJECT_UNIT_TEST_NAME} ${APP_TEST_SOURCES})
 target_include_directories(${PROJECT_UNIT_TEST_NAME} PUBLIC ${APP_INCLUDE_DIR})
 target_link_libraries(
   ${PROJECT_UNIT_TEST_NAME}
-  PRIVATE project_options
+  PRIVATE slacker_project_options
           stdc++fs
           gtest
           gtest_main)

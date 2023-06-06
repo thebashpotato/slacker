@@ -19,4 +19,4 @@ namespace slacker::utils {
     }
 }// namespace slacker::utils
 
-#endif // SLACKER_UTILS_VERSION_HPP
+#endif// SLACKER_UTILS_VERSION_HPP

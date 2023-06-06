@@ -12,12 +12,13 @@ namespace slacker::pure {
 }
 
 namespace slacker::x {
+
     /**
      * @brief Wrapper around an X Window instance
      * */
     class SLACKER_EXPORT X11Window {
     private:
-        SharedXDisplayPtr sharedDpyPtr_{nullptr};
+        SharedX11DisplayPtr display_{nullptr};
         bool isMapped_{false};
         bool isAllocated_{false};
         Window window_{0};
@@ -34,7 +35,7 @@ namespace slacker::x {
          *
          * @param `sharedDpyPtr` a reference counted connection to the X server.
          * */
-        explicit X11Window(SharedXDisplayPtr sharedDpyPtr) noexcept;
+        explicit X11Window(SharedX11DisplayPtr display) noexcept;
 
 
         /**
@@ -64,15 +65,12 @@ namespace slacker::x {
         /**
          * @brief Wrapper around XCreateWindow
          *
-         * @param `root_window` X11 root window id of which this window will be a child of
-         * @param `screen` number of screens for the host
          * @param `rect` Window geometry object
          *
          * @error XCreateSimpleWindow can generate BadAlloc, BadMatch, BadValue, and
          * BadWindow errors.
          * */
-        [[nodiscard]] auto createWindow(Window root_window, int32_t screen,
-                                        pure::Rect &&rect) noexcept -> bool;
+        [[nodiscard]] auto createWindow(pure::Rect &&rect) noexcept -> bool;
 
 
         /**

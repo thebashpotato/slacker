@@ -19,17 +19,21 @@ namespace slacker::x {
     }
 
 
+    auto X11Display::open() -> etl::Result<SharedX11DisplayPtr, etl::Void> {
+        auto display = std::make_shared<X11Display>();
+        if (display->isOpen()) {
+            return etl::Result<SharedX11DisplayPtr, etl::Void>(std::move(display));
+        }
+        return etl::Result<SharedX11DisplayPtr, etl::Void>(etl::Void());
+    }
+
+
     auto X11Display::isOpen() const -> bool {
         return display_ != nullptr;
     }
 
 
-    auto X11Display::sharedDisplay() const -> SharedXDisplayPtr {
-        return display_;
-    }
-
-
-    auto X11Display::rawDisplay() const -> Display * {
+    auto X11Display::raw() const -> Display * {
         return display_.get();
     }
 
