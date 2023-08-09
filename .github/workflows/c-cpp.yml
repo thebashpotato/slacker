@@ -1,0 +1,19 @@
+name: C Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: initialize
+      run: make init
+    - name: compile
+      run: make all
