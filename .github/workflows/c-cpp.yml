@@ -14,6 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: initialize
-      run: make init
+      run: sudo make init
     - name: compile
       run: make all
