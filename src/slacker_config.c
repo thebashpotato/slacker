@@ -1,5 +1,6 @@
 #include "slacker_config.h"
 #include "slacker_constants.h"
+#include "slacker_monitor.h"
 
 // clang-format off
 
@@ -26,8 +27,8 @@ const char *GLOBAL_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS] = {
     // ================================================================================================
     // |                        fg                        bg                          border          |
     // ================================================================================================
-    [SchemeNorm]    = { GLOBAL_COLORSCHEME_FOREGROUND, GLOBAL_COLORSCHEME_BACKGROUND,   GLOBAL_COLORSCHEME_BORDER },
-    [SchemeSel]     = { GLOBAL_COLORSCHEME_SECONDARY, GLOBAL_COLORSCHEME_PRIMARY,    GLOBAL_COLORSCHEME_PRIMARY  },
+    [SlackerColorscheme_Norm]    = { GLOBAL_COLORSCHEME_FOREGROUND, GLOBAL_COLORSCHEME_BACKGROUND,   GLOBAL_COLORSCHEME_BORDER },
+    [SlackerColorscheme_Sel]     = { GLOBAL_COLORSCHEME_SECONDARY, GLOBAL_COLORSCHEME_PRIMARY,    GLOBAL_COLORSCHEME_PRIMARY  },
 };
 
 const char *GLOBAL_TAGS[] = { "", "", "", "", "", "", "", "", "" };
@@ -92,17 +93,17 @@ const Button GLOBAL_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS] = {
     // ===============================================================================================
     // | Click              EventMask        Button          Function           Argument             |
     // ===============================================================================================
-    { ClkLtSymbol,           0,              Button1,        setlayout,      {0}                        },
-    { ClkLtSymbol,           0,              Button3,        setlayout,      {.v = &GLOBAL_LAYOUTS[2]}  },
-    { ClkWinTitle,           0,              Button2,        zoom,           {0}                        },
-    { ClkStatusText,         0,              Button2,        spawn,          {.v = GLOBAL_TERMINAL_COMMAND}    },
-    { ClkClientWin,          MODKEY,         Button1,        movemouse,      {0}                        },
-    { ClkClientWin,          MODKEY,         Button2,        togglefloating, {0}                        },
-    { ClkClientWin,          MODKEY,         Button3,        resizemouse,    {0}                        },
-    { ClkTagBar,             0,              Button1,        view,           {0}                        },
-    { ClkTagBar,             0,              Button3,        toggleview,     {0}                        },
-    { ClkTagBar,             MODKEY,         Button1,        tag,            {0}                        },
-    { ClkTagBar,             MODKEY,         Button3,        toggletag,      {0}                        },
+    { SlackerClick_LtSymbol,           0,              Button1,        setlayout,      {0}                              },
+    { SlackerClick_LtSymbol,           0,              Button3,        setlayout,      {.v = &GLOBAL_LAYOUTS[2]}        },
+    { SlackerClick_WinTitle,           0,              Button2,        zoom,           {0}                              },
+    { SlackerClick_StatusText,         0,              Button2,        spawn,          {.v = GLOBAL_TERMINAL_COMMAND}   },
+    { SlackerClick_ClientWin,          MODKEY,         Button1,        movemouse,      {0}                              },
+    { SlackerClick_ClientWin,          MODKEY,         Button2,        togglefloating, {0}                              },
+    { SlackerClick_ClientWin,          MODKEY,         Button3,        resizemouse,    {0}                              },
+    { SlackerClick_TagBar,             0,              Button1,        view,           {0}                              },
+    { SlackerClick_TagBar,             0,              Button3,        toggleview,     {0}                              },
+    { SlackerClick_TagBar,             MODKEY,         Button1,        tag,            {0}                              },
+    { SlackerClick_TagBar,             MODKEY,         Button3,        toggletag,      {0}                              },
 };
 
 // clang-format on

@@ -1,5 +1,5 @@
-#ifndef SLACKER_H
-#define SLACKER_H
+#ifndef SLACKER_MONITOR_H
+#define SLACKER_MONITOR_H
 
 // X11 Libraries
 #include <X11/Xlib.h>
@@ -18,60 +18,58 @@
 ////////////////////
 
 // Color Schemes
-enum SlackerColorSchemes {
-    SchemeNorm,
-    SchemeSel,
+enum SlackerColorscheme {
+    SlackerColorscheme_Norm,
+    SlackerColorscheme_Sel,
 };
 
 // Cursor
 enum SlackerCursor {
-    CurNormal,
-    CurResize,
-    CurMove,
-    CurLast
+    SlackerCursor_Normal,
+    SlackerCursor_Resize,
+    SlackerCursor_Move,
+    SlackerCursor_Last
 };
 
 // EWMH atoms
 // TODO: Link to docs
-enum SlackerEWMHAtomEnum {
-    NetSupported,
-    NetWMName,
-    NetWMState,
-    NetWMCheck,
-    NetWMFullscreen,
-    NetActiveWindow,
-    NetWMWindowType,
-    NetWMWindowTypeDialog,
-    NetClientList,
-    NetLast
+enum SlackerEWMHAtom {
+    SlackerEWMHAtom_NetSupported,
+    SlackerEWMHAtom_NetWMName,
+    SlackerEWMHAtom_NetWMState,
+    SlackerEWMHAtom_NetWMCheck,
+    SlackerEWMHAtom_NetWMFullscreen,
+    SlackerEWMHAtom_NetActiveWindow,
+    SlackerEWMHAtom_NetWMWindowType,
+    SlackerEWMHAtom_NetWMWindowTypeDialog,
+    SlackerEWMHAtom_NetClientList,
+    SlackerEWMHAtom_NetLast
 };
 
 // Default Atoms
 // TODO: Link to docs
-enum SlackerDefaultAtoms {
-    WMProtocols,
-    WMDelete,
-    WMState,
-    WMTakeFocus,
-    WMLast
+enum SlackerDefaultAtom {
+    SlackerDefaultAtom_WMProtocols,
+    SlackerDefaultAtom_WMDelete,
+    SlackerDefaultAtom_WMState,
+    SlackerDefaultAtom_WMTakeFocus,
+    SlackerDefaultAtom_WMLast
 };
 
 // Clicks
-enum SlackerClicks {
-    ClkTagBar,
-    ClkLtSymbol,
-    ClkStatusText,
-    ClkWinTitle,
-    ClkClientWin,
-    ClkRootWin,
-    ClkLast
+enum SlackerClick {
+    SlackerClick_TagBar,
+    SlackerClick_LtSymbol,
+    SlackerClick_StatusText,
+    SlackerClick_WinTitle,
+    SlackerClick_ClientWin,
+    SlackerClick_RootWin,
+    SlackerClick_Last
 };
-
 
 //////////////////////////
 /// Data Structures
 //////////////////////////
-
 
 /// @brief Represents an argument to a function
 typedef union Arg Arg;
@@ -81,7 +79,6 @@ union Arg {
     float f;
     const void *v;
 };
-
 
 /// @brief Represents a button
 typedef struct Button Button;
@@ -93,9 +90,7 @@ struct Button {
     const Arg arg;
 };
 
-
 typedef struct Monitor Monitor;
-
 
 /// @brief Represents an X client window
 typedef struct Client Client;
@@ -119,7 +114,6 @@ struct Client {
     Window win;
 };
 
-
 /// @brief A hotkey combination to be bound to a function
 typedef struct KeyMap KeyMap;
 struct KeyMap {
@@ -137,7 +131,6 @@ struct Layout {
     const char *symbol;
     void (*arrange)(Monitor *);
 };
-
 
 /// @brief Represents a physical monitor
 struct Monitor {
@@ -164,7 +157,6 @@ struct Monitor {
 void monitor_layout_master_stack(Monitor *m);
 
 void monitor_layout_monocle(Monitor *m);
-
 
 /// @brief Window WINDOW_RULES
 typedef struct WindowRule WindowRule;
