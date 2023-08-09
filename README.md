@@ -1,7 +1,6 @@
 # slacker
 
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-
 [![C Build](https://github.com/thebashpotato/slacker/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/thebashpotato/slacker/actions/workflows/c-cpp.yml)
 
 An X Tiling Window Manager for GNU/Linux and BSD's.
