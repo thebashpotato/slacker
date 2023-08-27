@@ -27,9 +27,9 @@ LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
 
 # flags
 ARGUMENT_FLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-#CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${ARGUMENT_FLAGS}
-CFLAGS = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${ARGUMENT_FLAGS}
+CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${ARGUMENT_FLAGS}
+#CFLAGS = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${ARGUMENT_FLAGS}
 LDFLAGS = ${LIBS}
 
 # compiler and linker
-CC = gcc
+CC = clang-14

@@ -53,13 +53,16 @@
 
 /* macros */
 #define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
+
 #define CLEANMASK(mask)                                                     \
     (mask & ~(numlockmask | LockMask) &                                     \
      (ShiftMask | ControlMask | Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | \
       Mod5Mask))
+
 #define INTERSECT(x, y, w, h, m)                                     \
     (MAX(0, MIN((x) + (w), (m)->wx + (m)->ww) - MAX((x), (m)->wx)) * \
      MAX(0, MIN((y) + (h), (m)->wy + (m)->wh) - MAX((y), (m)->wy)))
+
 #define ISVISIBLE(C) ((C->tags & C->mon->tagset[C->mon->seltags]))
 #define LENGTH(X) (sizeof X / sizeof X[0])
 #define MOUSEMASK (BUTTONMASK | PointerMotionMask)
@@ -1765,7 +1768,7 @@ void updatebarpos(Monitor *m) {
         m->by = -bh;
 }
 
-void updateclientlist() {
+void updateclientlist(void) {
     Client *c;
     Monitor *m;
 
@@ -2029,6 +2032,7 @@ void zoom(const Arg *arg) {
 }
 
 int main(int argc, char *argv[]) {
+    sleep(15);
     if (argc == 2 && !strcmp("-v", argv[1])) {
         die("slacker-" VERSION);
     } else if (argc != 1) {

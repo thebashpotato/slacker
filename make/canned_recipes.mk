@@ -11,6 +11,7 @@ endef
 
 
 # Embeds the window manager in a Xephyr window for testing and debugging
+# echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
 define _embed =
 	if [ ! -f $(BIN_DIR)/$(TARGET) ]; then
 		echo "Please build the window manager first"

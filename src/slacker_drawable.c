@@ -38,6 +38,7 @@ static size_t utf8validate(long *u, size_t i) {
 static size_t utf8decode(const char *c, long *u, size_t clen) {
     size_t i, j, len, type;
     long udecoded;
+    printf("utf8decode: %s\n", c);
 
     *u = UTF_INVALID;
     if (!clen)
@@ -143,7 +144,7 @@ static Fnt *xfont_create(Drw *drw, const char *fontname,
 
 
 static void xfont_free(Fnt *font) {
-    if (!font) {
+    if (font == NULL) {
         return;
     }
     if (font->pattern) {

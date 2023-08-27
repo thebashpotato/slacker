@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "attach",
+            "name": "Attach to slacker process",
+            "program": "${workspaceFolder}/build/bin/slacker",
+            "processId": "${command:pickProcess}",
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "justMyCode": false,
+        }
+    ]
+}
