@@ -2032,7 +2032,10 @@ void zoom(const Arg *arg) {
 }
 
 int main(int argc, char *argv[]) {
-    sleep(15);
+    if (DEBUG == 1) {
+        printf("Running in debug mode: slacker: pid: %d\n", getpid());
+        sleep(15);
+    }
     if (argc == 2 && !strcmp("-v", argv[1])) {
         die("slacker-" VERSION);
     } else if (argc != 1) {

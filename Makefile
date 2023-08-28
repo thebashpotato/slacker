@@ -36,7 +36,7 @@ $(TARGET): $(OBJ)
 init:
 	@$(call _init)
 
-embed: all
+embed:
 	@$(call _embed)
 
 format:

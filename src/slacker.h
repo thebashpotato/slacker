@@ -29,7 +29,7 @@ struct State {
     int32_t lrpad;
     /// num lock mask
     uint32_t numlockmask;
-    /// List monitors 
+    /// List of monitors 
     Monitor *mons;
     /// selected monitor
     Monitor *selmon;
