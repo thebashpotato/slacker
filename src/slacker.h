@@ -50,8 +50,8 @@ struct State {
 //     Atom window_manager_atom[SlackerDefaultAtom_WMLast];
 //     Atom net_atom[NetLast];
 //     bool is_running;
-//     Cur *cursor[CurLast];
-//     Cur **scheme;
+//     SlackerCursor *cursor[CurLast];
+//     Clr **scheme;
 //     Display *display;
 //     Drw *draw;
 //     Monitor *monitors;

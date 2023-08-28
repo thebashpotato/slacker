@@ -24,11 +24,11 @@ enum SlackerColorscheme {
 };
 
 // Cursor
-enum SlackerCursor {
-    SlackerCursor_Normal,
-    SlackerCursor_Resize,
-    SlackerCursor_Move,
-    SlackerCursor_Last
+enum SlackerCursorState {
+    SlackerCursorState_Normal,
+    SlackerCursorState_Resize,
+    SlackerCursorState_Move,
+    SlackerCursorState_Last
 };
 
 // EWMH atoms

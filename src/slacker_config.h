@@ -33,7 +33,7 @@ extern const Layout GLOBAL_LAYOUTS[MAX_LAYOUTS];
 extern const char *GLOBAL_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS];
 
 /// @brief Tags which are displayed in the bar
-/// @brief If you want more than 9 tags, you will need to change the
+/// @details If you want more than 9 tags, you will need to change the
 /// MAX_TAGS constant in slacker_constants.h to match the number of tags you want.
 extern const char *GLOBAL_TAGS[MAX_TAGS];
 

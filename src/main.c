@@ -156,7 +156,7 @@ static int (*xerrorxlib)(Display *, XErrorEvent *);
 static unsigned int numlockmask = 0;
 static Atom wmatom[SlackerDefaultAtom_WMLast], netatom[SlackerEWMHAtom_NetLast];
 static int running = 1;
-static Cur *cursor[SlackerCursor_Last];
+static SlackerCursor *cursor[SlackerCursorState_Last];
 static Clr **scheme;
 static Display *dpy;
 static Drw *drw;
@@ -447,7 +447,7 @@ void cleanup(void) {
     }
 
     // free all cursors
-    for (i = 0; i < SlackerCursor_Last; i++) {
+    for (i = 0; i < SlackerCursorState_Last; i++) {
         drw_cur_free(drw, cursor[i]);
     }
 
@@ -1089,7 +1089,7 @@ void movemouse(const Arg *arg) {
     ocx = c->x;
     ocy = c->y;
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     None, cursor[SlackerCursor_Move]->cursor,
+                     None, cursor[SlackerCursorState_Move]->cursor,
                      CurrentTime) != GrabSuccess)
         return;
     if (!getrootptr(&x, &y))
@@ -1240,7 +1240,7 @@ void resizemouse(const Arg *arg) {
     ocx = c->x;
     ocy = c->y;
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     None, cursor[SlackerCursor_Resize]->cursor,
+                     None, cursor[SlackerCursorState_Resize]->cursor,
                      CurrentTime) != GrabSuccess)
         return;
     XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1,
@@ -1512,9 +1512,9 @@ void setup(void) {
             XInternAtom(dpy, "_NET_CLIENT_LIST", False);
 
     /* init cursors */
-    cursor[SlackerCursor_Normal] = drw_cur_create(drw, XC_left_ptr);
-    cursor[SlackerCursor_Resize] = drw_cur_create(drw, XC_sizing);
-    cursor[SlackerCursor_Move] = drw_cur_create(drw, XC_fleur);
+    cursor[SlackerCursorState_Normal] = drw_cur_create(drw, XC_left_ptr);
+    cursor[SlackerCursorState_Resize] = drw_cur_create(drw, XC_sizing);
+    cursor[SlackerCursorState_Move] = drw_cur_create(drw, XC_fleur);
 
     /* init appearance */
     scheme = ecalloc(LENGTH(GLOBAL_COLORSCHEMES), sizeof(Clr *));
@@ -1542,7 +1542,7 @@ void setup(void) {
                     SlackerEWMHAtom_NetLast);
     XDeleteProperty(dpy, root, netatom[SlackerEWMHAtom_NetClientList]);
     /* select events */
-    wa.cursor = cursor[SlackerCursor_Normal]->cursor;
+    wa.cursor = cursor[SlackerCursorState_Normal]->cursor;
     wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask |
                     ButtonPressMask | PointerMotionMask | EnterWindowMask |
                     LeaveWindowMask | StructureNotifyMask | PropertyChangeMask;
@@ -1751,7 +1751,7 @@ void updatebars(void) {
                 dpy, root, m->wx, m->by, m->ww, bh, 0, DefaultDepth(dpy, screen),
                 CopyFromParent, DefaultVisual(dpy, screen),
                 CWOverrideRedirect | CWBackPixmap | CWEventMask, &wa);
-        XDefineCursor(dpy, m->barwin, cursor[SlackerCursor_Normal]->cursor);
+        XDefineCursor(dpy, m->barwin, cursor[SlackerCursorState_Normal]->cursor);
         XMapRaised(dpy, m->barwin);
         XSetClassHint(dpy, m->barwin, &ch);
     }

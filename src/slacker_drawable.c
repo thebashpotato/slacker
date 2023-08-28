@@ -8,6 +8,7 @@
 
 // Slacker Headers
 #include "slacker_drawable.h"
+#include "slacker_monitor.h"
 #include "slacker_utils.h"
 
 #define UTF_INVALID 0xFFFD
@@ -96,11 +97,9 @@ void drw_free(Drw *drw) {
     free(drw);
 }
 
-/* This function is an implementation detail. Library users should use
- * drw_fontset_create instead.
- */
-static Fnt *xfont_create(Drw *drw, const char *fontname,
-                         FcPattern *fontpattern) {
+/// @brief This function is an implementation detail. Library users should use
+/// drw_fontset_create instead.
+static Fnt *xfont_create(Drw *drw, const char *fontname, FcPattern *fontpattern) {
     Fnt *font;
     XftFont *xfont = NULL;
     FcPattern *pattern = NULL;
@@ -423,10 +422,10 @@ void drw_font_getexts(Fnt *font, const char *text, unsigned int len,
         *h = font->h;
 }
 
-Cur *drw_cur_create(Drw *drw, int shape) {
-    Cur *cur;
+SlackerCursor *drw_cur_create(Drw *drw, int shape) {
+    SlackerCursor *cur;
 
-    if (!drw || !(cur = ecalloc(1, sizeof(Cur))))
+    if (!drw || !(cur = ecalloc(1, sizeof(SlackerCursor))))
         return NULL;
 
     cur->cursor = XCreateFontCursor(drw->dpy, shape);
@@ -434,7 +433,7 @@ Cur *drw_cur_create(Drw *drw, int shape) {
     return cur;
 }
 
-void drw_cur_free(Drw *drw, Cur *cursor) {
+void drw_cur_free(Drw *drw, SlackerCursor *cursor) {
     if (!cursor)
         return;
 
