@@ -59,7 +59,7 @@ endef
 
 define _init =
 	if command -v apt 1>/dev/null 2>&1; then
-		apt-get install libx11-dev libxft-dev libxinerama-dev picom feh dunst network-manager volumeicon-alsa
+		apt-get install libx11-dev libxft-dev picom feh dunst network-manager volumeicon-alsa
 	else
 		echo "You are not on a Debian based system, make a pull request for your package manager"
 	fi

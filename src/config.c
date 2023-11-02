@@ -21,7 +21,7 @@ const int32_t GLOBAL_RESIZE_HINTS                   = 1;
 const int32_t GLOBAL_LOCK_FULLSCREEN                = 1;
 char GLOBAL_DMENU_MONITOR[]                         = "0";
 const char *GLOBAL_DMENU_COMMAND[]                  = {"dmenu_run", "-m", GLOBAL_DMENU_MONITOR, "-fn", GLOBAL_DMENU_FONT, "-nb", GLOBAL_COLORSCHEME_BACKGROUND, "-nf", GLOBAL_COLORSCHEME_FOREGROUND, "-sb", GLOBAL_COLORSCHEME_PRIMARY, "-sf", GLOBAL_COLORSCHEME_SECONDARY, NULL};
-const char *GLOBAL_TERMINAL_COMMAND[]               = {"alacritty", NULL};
+const char *GLOBAL_TERMINAL_COMMAND[]               = {"konsole", NULL};
 
 const char *GLOBAL_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS] = {
     // ================================================================================================
