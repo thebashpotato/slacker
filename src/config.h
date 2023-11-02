@@ -50,19 +50,25 @@ extern const char *GLOBAL_TERMINAL_COMMAND[];
 /// @brief KeyMap Definitions
 #define MODKEY Mod1Mask
 
-#define TAGKEYS(KEY, TAG)                                                    \
-    {MODKEY, KEY, view, {.ui = 1 << TAG}},                                   \
-            {MODKEY | ControlMask, KEY, toggleview, {.ui = 1 << TAG}},       \
-            {MODKEY | ShiftMask, KEY, tag, {.ui = 1 << TAG}},                \
-    {                                                                        \
-        MODKEY | ControlMask | ShiftMask, KEY, toggletag, { .ui = 1 << TAG } \
-    }
+#define TAGKEYS(KEY, TAG)                                                      \
+	{ MODKEY, KEY, view, { .ui = 1 << TAG } },                             \
+		{ MODKEY | ControlMask, KEY, toggleview, { .ui = 1 << TAG } }, \
+		{ MODKEY | ShiftMask, KEY, tag, { .ui = 1 << TAG } },          \
+	{                                                                      \
+		MODKEY | ControlMask | ShiftMask, KEY, toggletag,              \
+		{                                                              \
+			.ui = 1 << TAG                                         \
+		}                                                              \
+	}
 
 /// @brief helper for spawning shell commands in the pre dwm-5.0 fashion
-#define SHCMD(cmd)                                           \
-    {                                                        \
-        .v = (const char *[]) { "/bin/sh", "-c", cmd, NULL } \
-    }
+#define SHCMD(cmd)                                 \
+	{                                          \
+		.v = (const char *[])              \
+		{                                  \
+			"/bin/sh", "-c", cmd, NULL \
+		}                                  \
+	}
 
 /// @brief Custom KeyMap Bindings
 extern const KeyMap GLOBAL_KEYBINDINGS[MAX_KEY_BINDINGS];
@@ -72,4 +78,4 @@ extern const KeyMap GLOBAL_KEYBINDINGS[MAX_KEY_BINDINGS];
 /// @details click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin
 extern const Button GLOBAL_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS];
 
-#endif// SLACKER_CONFIG_H
+#endif // SLACKER_CONFIG_H

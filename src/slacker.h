@@ -14,27 +14,25 @@
 #include "drawable.h"
 #include "monitor.h"
 
-
 typedef struct State State;
 struct State {
-    /// screen id
-    int32_t screen;
-    /// screen width
-    int32_t sw;
-    /// screen height
-    int32_t sh;
-    /// bar height
-    int32_t bh;
-    /// sum of left and right text padding
-    int32_t lrpad;
-    /// num lock mask
-    uint32_t numlockmask;
-    /// List of monitors
-    Monitor *mons;
-    /// selected monitor
-    Monitor *selmon;
+	/// screen id
+	int32_t screen;
+	/// screen width
+	int32_t sw;
+	/// screen height
+	int32_t sh;
+	/// bar height
+	int32_t bh;
+	/// sum of left and right text padding
+	int32_t lrpad;
+	/// num lock mask
+	uint32_t numlockmask;
+	/// List of monitors
+	Monitor *mons;
+	/// selected monitor
+	Monitor *selmon;
 };
-
 
 // typedef struct Slacker Slacker;
 // struct Slacker {

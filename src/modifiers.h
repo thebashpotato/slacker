@@ -39,4 +39,4 @@ void movemouse(const Arg *arg);
 
 void resizemouse(const Arg *arg);
 
-#endif// SLACKER_MODIFIERS_H
+#endif // SLACKER_MODIFIERS_H
