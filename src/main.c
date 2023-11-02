@@ -44,12 +44,12 @@
 #include <unistd.h>
 
 // Slacker Headers
-#include "slacker_config.h"
-#include "slacker_constants.h"
-#include "slacker_drawable.h"
-#include "slacker_modifiers.h"
-#include "slacker_monitor.h"
-#include "slacker_utils.h"
+#include "config.h"
+#include "constants.h"
+#include "drawable.h"
+#include "modifiers.h"
+#include "monitor.h"
+#include "utils.h"
 
 /* macros */
 #define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
@@ -82,7 +82,7 @@ static void attachstack(Client *c);
 static void buttonpress(XEvent *e);
 static void checkotherwm(void);
 static void cleanup(void);
-static void cleanupmon(Monitor *mon);
+static void cleanupmon(Monitor *m);
 static void clientmessage(XEvent *e);
 static void configure(Client *c);
 static void configurenotify(XEvent *e);
@@ -468,20 +468,20 @@ void cleanup(void) {
     XDeleteProperty(dpy, root, netatom[SlackerEWMHAtom_NetActiveWindow]);
 }
 
-void cleanupmon(Monitor *mon) {
-    Monitor *m;
+void cleanupmon(Monitor *m) {
+    Monitor *temp_mon;
 
-    if (mon == mons) {
+    if (m == mons) {
         mons = mons->next;
     } else {
-        for (m = mons; m && m->next != mon; m = m->next) {
+        for (temp_mon = mons; temp_mon && temp_mon->next != m; temp_mon = temp_mon->next) {
             ;
         }
-        m->next = mon->next;
+        temp_mon->next = m->next;
     }
-    XUnmapWindow(dpy, mon->barwin);
-    XDestroyWindow(dpy, mon->barwin);
-    free(mon);
+    XUnmapWindow(dpy, m->barwin);
+    XDestroyWindow(dpy, m->barwin);
+    free(m);
 }
 
 void clientmessage(XEvent *e) {

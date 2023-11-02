@@ -10,9 +10,9 @@
 #include <stdint.h>
 
 // Slacker Headers
-#include "slacker_constants.h"
-#include "slacker_monitor.h"
-#include "slacker_drawable.h"
+#include "constants.h"
+#include "drawable.h"
+#include "monitor.h"
 
 
 typedef struct State State;
@@ -29,7 +29,7 @@ struct State {
     int32_t lrpad;
     /// num lock mask
     uint32_t numlockmask;
-    /// List of monitors 
+    /// List of monitors
     Monitor *mons;
     /// selected monitor
     Monitor *selmon;

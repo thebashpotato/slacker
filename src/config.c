@@ -1,6 +1,6 @@
-#include "slacker_config.h"
-#include "slacker_constants.h"
-#include "slacker_monitor.h"
+#include "config.h"
+#include "constants.h"
+#include "monitor.h"
 
 // clang-format off
 

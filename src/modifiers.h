@@ -1,7 +1,7 @@
 #ifndef SLACKER_MODIFIERS_H
 #define SLACKER_MODIFIERS_H
 
-#include "slacker_monitor.h"
+#include "monitor.h"
 
 void spawn(const Arg *arg);
 

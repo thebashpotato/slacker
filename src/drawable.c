@@ -7,9 +7,9 @@
 #include <string.h>
 
 // Slacker Headers
-#include "slacker_drawable.h"
-#include "slacker_monitor.h"
-#include "slacker_utils.h"
+#include "drawable.h"
+#include "monitor.h"
+#include "utils.h"
 
 #define UTF_INVALID 0xFFFD
 #define UTF_SIZ 4

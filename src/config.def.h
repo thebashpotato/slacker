@@ -5,9 +5,9 @@
 #include <stdint.h>
 
 // Slacker Headers
-#include "slacker_constants.h"
-#include "slacker_modifiers.h"
-#include "slacker_monitor.h"
+#include "constants.h"
+#include "modifiers.h"
+#include "monitor.h"
 
 /// @brief Appearance
 extern const uint32_t GLOBAL_BORDER_PIXEL;

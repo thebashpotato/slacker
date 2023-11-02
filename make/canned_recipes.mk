@@ -4,8 +4,8 @@ define _setup =
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(DIST_DIR)
 
-	if [ ! -f $(SRC_DIR)/slacker_config.h ]; then
-		cp -v $(SRC_DIR)/slacker_config.def.h $(SRC_DIR)/slacker_config.h
+	if [ ! -f $(SRC_DIR)/config.h ]; then
+		cp -v $(SRC_DIR)/config.def.h $(SRC_DIR)/config.h
 	fi
 endef
 
@@ -33,7 +33,7 @@ define _embed =
 endef
 
 
-define _format = 
+define _format =
 	if command -v clang-format 1>/dev/null 2>&1; then
 		clang-format -i --verbose $(SRC_DIR)/*.c $(SRC_DIR)/*.h
 	else

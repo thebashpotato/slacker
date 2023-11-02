@@ -5,7 +5,7 @@
 #include <string.h>
 
 // Slacker Headers
-#include "slacker_utils.h"
+#include "utils.h"
 
 void die(const char *fmt, ...) {
     va_list ap;
