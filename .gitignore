@@ -1,4 +1,3 @@
 compile_commands.json
-src/config.c
 build/
 .cache/

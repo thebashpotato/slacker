@@ -68,7 +68,7 @@
 #define WIDTH(X) ((X)->w + 2 * (X)->bw)
 #define HEIGHT(X) ((X)->h + 2 * (X)->bw)
 #define TAGMASK ((1 << LENGTH(GLOBAL_TAGS)) - 1)
-#define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + lrpad)
+#define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + left_right_padding_sum)
 
 /* function declarations */
 static void applyrules(Client *c);
@@ -146,15 +146,15 @@ static int xerrorstart(Display *dpy, XErrorEvent *ee);
 
 /* Global variables */
 static const char broken[] = "broken";
-static char stext[256];
-static int screen;
-static int sw, sh; /* X display screen geometry width, height */
-static int bh; /* bar height */
-static int lrpad; /* sum of left and right padding for text */
-static int (*xerrorxlib)(Display *, XErrorEvent *);
-static unsigned int numlockmask = 0;
+static char stext[MAX_CLIENT_NAME_LEN];
+static int32_t screen;
+static int32_t screen_width, screen_height; /* X display screen geometry width, height */
+static int32_t bar_height; /* bar height */
+static int32_t left_right_padding_sum; /* sum of left and right padding for text */
+static int32_t (*xerrorxlib)(Display *, XErrorEvent *);
+static uint32_t numlockmask = 0;
 static Atom wmatom[SlackerDefaultAtom_WMLast], netatom[SlackerEWMHAtom_NetLast];
-static int running = 1;
+static bool is_running = true;
 static SlackerCursor *cursor[SlackerCursorState_Last];
 static SlackerColor **scheme;
 static Display *dpy;
@@ -274,10 +274,10 @@ int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
 	*w = MAX(1, *w);
 	*h = MAX(1, *h);
 	if (interact) {
-		if (*x > sw)
-			*x = sw - WIDTH(c);
-		if (*y > sh)
-			*y = sh - HEIGHT(c);
+		if (*x > screen_width)
+			*x = screen_width - WIDTH(c);
+		if (*y > screen_height)
+			*y = screen_height - HEIGHT(c);
 		if (*x + *w + 2 * c->bw < 0)
 			*x = 0;
 		if (*y + *h + 2 * c->bw < 0)
@@ -292,10 +292,10 @@ int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
 		if (*y + *h + 2 * c->bw <= m->wy)
 			*y = m->wy;
 	}
-	if (*h < bh)
-		*h = bh;
-	if (*w < bh)
-		*w = bh;
+	if (*h < bar_height)
+		*h = bar_height;
+	if (*w < bar_height)
+		*w = bar_height;
 	if (GLOBAL_RESIZE_HINTS || c->isfloating ||
 	    !c->mon->lt[c->mon->sellt]->arrange) {
 		if (!c->hintsvalid)
@@ -551,11 +551,11 @@ void configurenotify(XEvent *e)
 
 	/* TODO: updategeom handling sucks, needs to be simplified */
 	if (ev->window == root) {
-		dirty = (sw != ev->width || sh != ev->height);
-		sw = ev->width;
-		sh = ev->height;
+		dirty = (screen_width != ev->width || screen_height != ev->height);
+		screen_width = ev->width;
+		screen_height = ev->height;
 		if (updategeom() || dirty) {
-			drw_resize(drw, sw, bh);
+			drw_resize(drw, screen_width, bar_height);
 			updatebars();
 			for (m = mons; m; m = m->next) {
 				for (c = m->clients; c; c = c->next)
@@ -563,7 +563,7 @@ void configurenotify(XEvent *e)
 						resizeclient(c, m->mx, m->my,
 							     m->mw, m->mh);
 				XMoveResizeWindow(dpy, m->barwin, m->wx, m->by,
-						  m->ww, bh);
+						  m->ww, bar_height);
 			}
 			focus(NULL);
 			arrange(NULL);
@@ -709,8 +709,8 @@ void drawbar(Monitor *m)
 	/* draw status first so it can be overdrawn by tags later */
 	if (m == selmon) { /* status is only drawn on selected monitor */
 		drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-		drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
+		tw = TEXTW(stext) - left_right_padding_sum + 2; /* 2px right padding */
+		drw_text(drw, m->ww - tw, 0, tw, bar_height, 0, stext, 0);
 	}
 
 	for (c = m->clients; c; c = c->next) {
@@ -724,7 +724,7 @@ void drawbar(Monitor *m)
 		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ?
 						  SlackerColorscheme_Sel :
 						  SlackerColorscheme_Norm]);
-		drw_text(drw, x, 0, w, bh, lrpad / 2, GLOBAL_TAGS[i],
+		drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2, GLOBAL_TAGS[i],
 			 urg & 1 << i);
 		if (occ & 1 << i)
 			drw_rect(drw, x + boxs, boxs, boxw, boxw,
@@ -735,24 +735,24 @@ void drawbar(Monitor *m)
 	}
 	w = TEXTW(m->ltsymbol);
 	drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+	x = drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2, m->ltsymbol, 0);
 
-	if ((w = m->ww - tw - x) > bh) {
+	if ((w = m->ww - tw - x) > bar_height) {
 		if (m->sel) {
 			drw_setscheme(
 				drw,
 				scheme[m == selmon ? SlackerColorscheme_Sel :
 						     SlackerColorscheme_Norm]);
-			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
+			drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2, m->sel->name, 0);
 			if (m->sel->isfloating)
 				drw_rect(drw, x + boxs, boxs, boxw, boxw,
 					 m->sel->isfixed, 0);
 		} else {
 			drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-			drw_rect(drw, x, 0, w, bh, 1, 1);
+			drw_rect(drw, x, 0, w, bar_height, 1, 1);
 		}
 	}
-	drw_map(drw, m->barwin, 0, 0, m->ww, bh);
+	drw_map(drw, m->barwin, 0, 0, m->ww, bar_height);
 }
 
 void drawbars(void)
@@ -1089,7 +1089,7 @@ void manage(Window w, XWindowAttributes *wa)
 	XChangeProperty(dpy, root, netatom[SlackerEWMHAtom_NetClientList],
 			XA_WINDOW, 32, PropModeAppend,
 			(unsigned char *)&(c->win), 1);
-	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w,
+	XMoveResizeWindow(dpy, c->win, c->x + 2 * screen_width, c->y, c->w,
 			  c->h); /* some windows require this */
 	setclientstate(c, NormalState);
 	if (c->mon == selmon)
@@ -1276,7 +1276,7 @@ void propertynotify(XEvent *e)
 
 void quit(const Arg *arg)
 {
-	running = 0;
+	is_running = false;
 }
 
 Monitor *recttomon(int x, int y, int w, int h)
@@ -1417,7 +1417,7 @@ void run(void)
 	XEvent ev;
 	XSync(dpy, False);
 	/* main event loop */
-	while (running && !XNextEvent(dpy, &ev)) {
+	while (is_running && !XNextEvent(dpy, &ev)) {
 		slacker_event_loop(&ev);
 	}
 }
@@ -1591,17 +1591,17 @@ void setup(void)
 
 	/* init screen */
 	screen = DefaultScreen(dpy);
-	sw = DisplayWidth(dpy, screen);
-	sh = DisplayHeight(dpy, screen);
+	screen_width = DisplayWidth(dpy, screen);
+	screen_height = DisplayHeight(dpy, screen);
 	root = RootWindow(dpy, screen);
-	drw = drw_create(dpy, screen, root, sw, sh);
+	drw = drw_create(dpy, screen, root, screen_width, screen_height);
 
 	if (!drw_fontset_create(drw, GLOBAL_USER_FONT)) {
 		die("no fonts could be loaded.");
 	}
 
-	lrpad = drw->fonts->h;
-	bh = drw->fonts->h + 2;
+	left_right_padding_sum = drw->fonts->h;
+	bar_height = drw->fonts->h + 2;
 	updategeom();
 	/* init atoms */
 	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
@@ -1782,7 +1782,7 @@ void togglebar(const Arg *arg)
 	selmon->showbar = !selmon->showbar;
 	updatebarpos(selmon);
 	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by,
-			  selmon->ww, bh);
+			  selmon->ww, bar_height);
 	arrange(selmon);
 }
 
@@ -1891,7 +1891,7 @@ void updatebars(void)
 		if (m->barwin)
 			continue;
 		m->barwin = XCreateWindow(
-			dpy, root, m->wx, m->by, m->ww, bh, 0,
+			dpy, root, m->wx, m->by, m->ww, bar_height, 0,
 			DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWOverrideRedirect | CWBackPixmap | CWEventMask, &wa);
@@ -1907,11 +1907,11 @@ void updatebarpos(Monitor *m)
 	m->wy = m->my;
 	m->wh = m->mh;
 	if (m->showbar) {
-		m->wh -= bh;
+		m->wh -= bar_height;
 		m->by = m->topbar ? m->wy : m->wy + m->wh;
-		m->wy = m->topbar ? m->wy + bh : m->wy;
+		m->wy = m->topbar ? m->wy + bar_height : m->wy;
 	} else
-		m->by = -bh;
+		m->by = -bar_height;
 }
 
 void updateclientlist(void)
@@ -1936,10 +1936,10 @@ int updategeom(void)
 	/* default monitor setup */
 	if (!mons)
 		mons = createmon();
-	if (mons->mw != sw || mons->mh != sh) {
+	if (mons->mw != screen_width || mons->mh != screen_height) {
 		dirty = 1;
-		mons->mw = mons->ww = sw;
-		mons->mh = mons->wh = sh;
+		mons->mw = mons->ww = screen_width;
+		mons->mh = mons->wh = screen_height;
 		updatebarpos(mons);
 	}
 	if (dirty) {

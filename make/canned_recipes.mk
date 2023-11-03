@@ -5,7 +5,7 @@ define _setup =
 	@mkdir -p $(DIST_DIR)
 
 	if [ ! -f $(CONFIG_FILE) ]; then
-		cp -v $(SRC_DIR)/config.def.c $(CONFIG_FILE)
+		cp -v $(SRC_DIR)/config.c.def $(CONFIG_FILE)
 	fi
 endef
 
