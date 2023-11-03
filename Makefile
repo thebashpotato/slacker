@@ -1,12 +1,13 @@
 # slacker - Fork of the orignal Dynamic Tiling Window Manager from suckless.org
 # See LICENSE file for copyright and license details.
 
-TARGET = slacker
+TARGET = slackerwm
 SRC_DIR = src
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/obj
 BIN_DIR = $(BUILD_DIR)/bin
 DIST_DIR = $(BUILD_DIR)/dist
+CONFIG_FILE = $(SRC_DIR)/config.c
 
 include make/compiler_settings.mk
 include make/canned_recipes.mk

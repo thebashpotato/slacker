@@ -4,8 +4,8 @@ define _setup =
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(DIST_DIR)
 
-	if [ ! -f $(SRC_DIR)/config.h ]; then
-		cp -v $(SRC_DIR)/config.def.h $(SRC_DIR)/config.h
+	if [ ! -f $(CONFIG_FILE) ]; then
+		cp -v $(SRC_DIR)/config.def.c $(CONFIG_FILE)
 	fi
 endef
 
