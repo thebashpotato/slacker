@@ -51,7 +51,10 @@
 #include "monitor.h"
 #include "utils.h"
 
-/* macros */
+//////////////////////////////////
+/// Window manager specific macros
+//////////////////////////////////
+
 #define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
 
 #define CLEANMASK(mask)                                              \
@@ -70,7 +73,60 @@
 #define TAGMASK ((1 << LENGTH(GLOBAL_TAGS)) - 1)
 #define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + left_right_padding_sum)
 
-/* function declarations */
+//////////////////////
+/// Global variables
+//////////////////////
+
+/// Client text which displays in the bar when the client is broken
+static const char broken[] = "broken";
+/// Current client text which displays in the bar
+static char stext[MAX_CLIENT_NAME_LEN];
+/// X screen id
+static int32_t screen;
+/// X display screen geometry width
+static int32_t screen_width;
+/// X display screen geometry height
+static int32_t screen_height;
+/// Bar height
+static int32_t bar_height;
+/// Sum of left and right padding for text
+static int32_t left_right_padding_sum;
+/// X error callback function
+static int32_t (*xerrorxlib)(Display *, XErrorEvent *);
+/// Num lock mask
+static uint32_t numlockmask = 0;
+/// Window manager Atoms
+static Atom wmatom[SlackerDefaultAtom_WMLast];
+/// Net Atoms
+static Atom netatom[SlackerEWMHAtom_NetLast];
+/// Is the window manager running
+static bool is_running = true;
+/// Slacker cursor states
+static SlackerCursor *cursor[SlackerCursorState_Last];
+/// Slacker color schemes
+static SlackerColor **scheme;
+/// X display
+static Display *dpy;
+/// Drawable abstraction
+static Drw *drw;
+/// All connected monitors
+static Monitor *mons;
+/// Currently selected monitor
+static Monitor *selmon;
+/// Root window
+static Window root;
+/// Window manager check window
+static Window wmcheckwin;
+
+/// @brief compile-time check if all tags fit into an unsigned int bit array
+struct NumTags {
+	uint32_t limitexceeded[LENGTH(GLOBAL_TAGS) > 31 ? -1 : 1];
+};
+
+/////////////////////////////
+/// Function declarations
+/////////////////////////////
+
 static void applyrules(Client *c);
 static int applysizehints(Client *c, int *x, int *y, int *w, int *h,
 			  int interact);
@@ -144,23 +200,9 @@ static int xerror(Display *dpy, XErrorEvent *ee);
 static int xerrordummy(Display *dpy, XErrorEvent *ee);
 static int xerrorstart(Display *dpy, XErrorEvent *ee);
 
-/* Global variables */
-static const char broken[] = "broken";
-static char stext[MAX_CLIENT_NAME_LEN];
-static int32_t screen;
-static int32_t screen_width, screen_height; /* X display screen geometry width, height */
-static int32_t bar_height; /* bar height */
-static int32_t left_right_padding_sum; /* sum of left and right padding for text */
-static int32_t (*xerrorxlib)(Display *, XErrorEvent *);
-static uint32_t numlockmask = 0;
-static Atom wmatom[SlackerDefaultAtom_WMLast], netatom[SlackerEWMHAtom_NetLast];
-static bool is_running = true;
-static SlackerCursor *cursor[SlackerCursorState_Last];
-static SlackerColor **scheme;
-static Display *dpy;
-static Drw *drw;
-static Monitor *mons, *selmon;
-static Window root, wmcheckwin;
+///////////////////////////////
+/// Function implementations
+///////////////////////////////
 
 /// @brief The main event loop
 static void slacker_event_loop(XEvent *event)
@@ -214,14 +256,6 @@ static void slacker_event_loop(XEvent *event)
 	}
 }
 
-/* configuration, allows nested code to access above variables */
-
-/* compile-time check if all tags fit into an unsigned int bit array. */
-struct NumTags {
-	uint32_t limitexceeded[LENGTH(GLOBAL_TAGS) > 31 ? -1 : 1];
-};
-
-/* function implementations */
 void applyrules(Client *c)
 {
 	const char *class, *instance;
@@ -551,7 +585,8 @@ void configurenotify(XEvent *e)
 
 	/* TODO: updategeom handling sucks, needs to be simplified */
 	if (ev->window == root) {
-		dirty = (screen_width != ev->width || screen_height != ev->height);
+		dirty = (screen_width != ev->width ||
+			 screen_height != ev->height);
 		screen_width = ev->width;
 		screen_height = ev->height;
 		if (updategeom() || dirty) {
@@ -709,7 +744,8 @@ void drawbar(Monitor *m)
 	/* draw status first so it can be overdrawn by tags later */
 	if (m == selmon) { /* status is only drawn on selected monitor */
 		drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-		tw = TEXTW(stext) - left_right_padding_sum + 2; /* 2px right padding */
+		tw = TEXTW(stext) - left_right_padding_sum +
+		     2; /* 2px right padding */
 		drw_text(drw, m->ww - tw, 0, tw, bar_height, 0, stext, 0);
 	}
 
@@ -724,8 +760,8 @@ void drawbar(Monitor *m)
 		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ?
 						  SlackerColorscheme_Sel :
 						  SlackerColorscheme_Norm]);
-		drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2, GLOBAL_TAGS[i],
-			 urg & 1 << i);
+		drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2,
+			 GLOBAL_TAGS[i], urg & 1 << i);
 		if (occ & 1 << i)
 			drw_rect(drw, x + boxs, boxs, boxw, boxw,
 				 m == selmon && selmon->sel &&
@@ -735,7 +771,8 @@ void drawbar(Monitor *m)
 	}
 	w = TEXTW(m->ltsymbol);
 	drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-	x = drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2, m->ltsymbol, 0);
+	x = drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2,
+		     m->ltsymbol, 0);
 
 	if ((w = m->ww - tw - x) > bar_height) {
 		if (m->sel) {
@@ -743,7 +780,8 @@ void drawbar(Monitor *m)
 				drw,
 				scheme[m == selmon ? SlackerColorscheme_Sel :
 						     SlackerColorscheme_Norm]);
-			drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2, m->sel->name, 0);
+			drw_text(drw, x, 0, w, bar_height,
+				 left_right_padding_sum / 2, m->sel->name, 0);
 			if (m->sel->isfloating)
 				drw_rect(drw, x + boxs, boxs, boxw, boxw,
 					 m->sel->isfixed, 0);
