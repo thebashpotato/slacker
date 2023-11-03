@@ -22,6 +22,7 @@
 /// To understand everything else, start reading main().
 
 // X11 Libraries
+#include <X11/X.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
@@ -47,13 +48,14 @@
 #include "config.h"
 #include "constants.h"
 #include "drawable.h"
+#include "events.h"
 #include "modifiers.h"
 #include "monitor.h"
 #include "utils.h"
 
-//////////////////////////////////
-/// Window manager specific macros
-//////////////////////////////////
+//////////////////////////////////////////
+/// Window Mangager specific macros
+//////////////////////////////////////////
 
 #define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
 
@@ -134,39 +136,26 @@ static void arrange(Monitor *m);
 static void arrangemon(Monitor *m);
 static void attach(Client *c);
 static void attachstack(Client *c);
-static void buttonpress(XEvent *e);
 static void checkotherwm(void);
 static void cleanup(void);
 static void cleanupmon(Monitor *m);
-static void clientmessage(XEvent *e);
 static void configure(Client *c);
-static void configurenotify(XEvent *e);
-static void configurerequest(XEvent *e);
 static Monitor *createmon(void);
-static void destroynotify(XEvent *e);
 static void detach(Client *c);
 static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
-static void enternotify(XEvent *e);
-static void expose(XEvent *e);
 static void focus(Client *c);
-static void focusin(XEvent *e);
 static Atom getatomprop(Client *c, Atom prop);
 static int getrootptr(int *x, int *y);
 static long getstate(Window w);
 static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
 static void grabbuttons(Client *c, int focused);
 static void grabkeys(void);
-static void keypress(XEvent *e);
 static void manage(Window w, XWindowAttributes *wa);
-static void mappingnotify(XEvent *e);
-static void maprequest(XEvent *e);
-static void motionnotify(XEvent *e);
 static Client *nexttiled(Client *c);
 static void pop(Client *c);
-static void propertynotify(XEvent *e);
 static Monitor *recttomon(int x, int y, int w, int h);
 static void resize(Client *c, int x, int y, int w, int h, int interact);
 static void resizeclient(Client *c, int x, int y, int w, int h);
@@ -183,7 +172,6 @@ static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
 static void unfocus(Client *c, int setfocus);
 static void unmanage(Client *c, int destroyed);
-static void unmapnotify(XEvent *e);
 static void updatebarpos(Monitor *m);
 static void updatebars(void);
 static void updateclientlist(void);
@@ -203,58 +191,6 @@ static int xerrorstart(Display *dpy, XErrorEvent *ee);
 ///////////////////////////////
 /// Function implementations
 ///////////////////////////////
-
-/// @brief The main event loop
-static void slacker_event_loop(XEvent *event)
-{
-	switch (event->type) {
-	case ButtonPress:
-		buttonpress(event);
-		break;
-	case ClientMessage:
-		clientmessage(event);
-		break;
-	case ConfigureRequest:
-		configurerequest(event);
-		break;
-	case ConfigureNotify:
-		configurenotify(event);
-		break;
-	case DestroyNotify:
-		destroynotify(event);
-		break;
-	case EnterNotify:
-		enternotify(event);
-		break;
-	case Expose:
-		expose(event);
-		break;
-	case FocusIn:
-		focusin(event);
-		break;
-	case KeyPress:
-		keypress(event);
-		break;
-	case MappingNotify:
-		mappingnotify(event);
-		break;
-	case MapRequest:
-		maprequest(event);
-		break;
-	case MotionNotify:
-		motionnotify(event);
-		break;
-	case PropertyNotify:
-		propertynotify(event);
-		break;
-	case UnmapNotify:
-		unmapnotify(event);
-		break;
-	default:
-		// fprintf(stdout, "Unhandled event: %d\n", event->type);
-		break;
-	}
-}
 
 void applyrules(Client *c)
 {
@@ -401,13 +337,13 @@ void attachstack(Client *c)
 	c->mon->stack = c;
 }
 
-void buttonpress(XEvent *e)
+void event_buttonpress(XEvent *event)
 {
 	unsigned int i, x, click;
 	Arg arg = { 0 };
 	Client *c;
 	Monitor *m;
-	XButtonPressedEvent *ev = &e->xbutton;
+	XButtonPressedEvent *ev = &event->xbutton;
 
 	click = SlackerClick_RootWin;
 	/* focus monitor if necessary */
@@ -532,9 +468,9 @@ void cleanupmon(Monitor *m)
 	free(m);
 }
 
-void clientmessage(XEvent *e)
+void event_clientmessage(XEvent *event)
 {
-	XClientMessageEvent *cme = &e->xclient;
+	XClientMessageEvent *cme = &event->xclient;
 	Client *c = wintoclient(cme->window);
 
 	if (!c) {
@@ -576,11 +512,11 @@ void configure(Client *c)
 	XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
 }
 
-void configurenotify(XEvent *e)
+void event_configurenotify(XEvent *event)
 {
 	Monitor *m;
 	Client *c;
-	XConfigureEvent *ev = &e->xconfigure;
+	XConfigureEvent *ev = &event->xconfigure;
 	int dirty;
 
 	/* TODO: updategeom handling sucks, needs to be simplified */
@@ -606,11 +542,11 @@ void configurenotify(XEvent *e)
 	}
 }
 
-void configurerequest(XEvent *e)
+void event_configurerequest(XEvent *event)
 {
 	Client *c;
 	Monitor *m;
-	XConfigureRequestEvent *ev = &e->xconfigurerequest;
+	XConfigureRequestEvent *ev = &event->xconfigurerequest;
 	XWindowChanges wc;
 
 	if ((c = wintoclient(ev->window))) {
@@ -681,10 +617,10 @@ Monitor *createmon(void)
 	return m;
 }
 
-void destroynotify(XEvent *e)
+void event_destroynotify(XEvent *event)
 {
 	Client *c;
-	XDestroyWindowEvent *ev = &e->xdestroywindow;
+	XDestroyWindowEvent *ev = &event->xdestroywindow;
 
 	if ((c = wintoclient(ev->window)))
 		unmanage(c, 1);
@@ -801,11 +737,11 @@ void drawbars(void)
 		drawbar(m);
 }
 
-void enternotify(XEvent *e)
+void event_enternotify(XEvent *event)
 {
 	Client *c;
 	Monitor *m;
-	XCrossingEvent *ev = &e->xcrossing;
+	XCrossingEvent *ev = &event->xcrossing;
 
 	if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) &&
 	    ev->window != root)
@@ -820,10 +756,10 @@ void enternotify(XEvent *e)
 	focus(c);
 }
 
-void expose(XEvent *e)
+void event_expose(XEvent *event)
 {
 	Monitor *m;
-	XExposeEvent *ev = &e->xexpose;
+	XExposeEvent *ev = &event->xexpose;
 
 	if (ev->count == 0 && (m = wintomon(ev->window)))
 		drawbar(m);
@@ -858,9 +794,9 @@ void focus(Client *c)
 }
 
 /* there are some broken focus acquiring clients needing extra handling */
-void focusin(XEvent *e)
+void event_focusin(XEvent *event)
 {
-	XFocusChangeEvent *ev = &e->xfocus;
+	XFocusChangeEvent *ev = &event->xfocus;
 
 	if (selmon->sel && ev->window != selmon->sel->win)
 		setfocus(selmon->sel);
@@ -1042,13 +978,13 @@ void incnmaster(const Arg *arg)
 	arrange(selmon);
 }
 
-void keypress(XEvent *e)
+void event_keypress(XEvent *event)
 {
 	unsigned int i;
 	KeySym keysym;
 	XKeyEvent *ev;
 
-	ev = &e->xkey;
+	ev = &event->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
 	for (i = 0; i < LENGTH(GLOBAL_KEYBINDINGS); i++)
 		if (keysym == GLOBAL_KEYBINDINGS[i].keysym &&
@@ -1138,19 +1074,19 @@ void manage(Window w, XWindowAttributes *wa)
 	focus(NULL);
 }
 
-void mappingnotify(XEvent *e)
+void event_mappingnotify(XEvent *event)
 {
-	XMappingEvent *ev = &e->xmapping;
+	XMappingEvent *ev = &event->xmapping;
 
 	XRefreshKeyboardMapping(ev);
 	if (ev->request == MappingKeyboard)
 		grabkeys();
 }
 
-void maprequest(XEvent *e)
+void event_maprequest(XEvent *event)
 {
 	static XWindowAttributes wa;
-	XMapRequestEvent *ev = &e->xmaprequest;
+	XMapRequestEvent *ev = &event->xmaprequest;
 
 	if (!XGetWindowAttributes(dpy, ev->window, &wa) || wa.override_redirect)
 		return;
@@ -1173,11 +1109,11 @@ void monitor_layout_monocle(Monitor *m)
 		       0);
 }
 
-void motionnotify(XEvent *e)
+void event_motionnotify(XEvent *event)
 {
 	static Monitor *mon = NULL;
 	Monitor *m;
-	XMotionEvent *ev = &e->xmotion;
+	XMotionEvent *ev = &event->xmotion;
 
 	if (ev->window != root)
 		return;
@@ -1219,7 +1155,7 @@ void movemouse(const Arg *arg)
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
-			slacker_event_loop(&ev);
+			event_loop(&ev);
 			// handler[ev.type](&ev);
 			break;
 		case MotionNotify:
@@ -1273,11 +1209,11 @@ void pop(Client *c)
 	arrange(c->mon);
 }
 
-void propertynotify(XEvent *e)
+void event_propertynotify(XEvent *event)
 {
 	Client *c;
 	Window trans;
-	XPropertyEvent *ev = &e->xproperty;
+	XPropertyEvent *ev = &event->xproperty;
 
 	if ((ev->window == root) && (ev->atom == XA_WM_NAME))
 		updatestatus();
@@ -1386,7 +1322,7 @@ void resizemouse(const Arg *arg)
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
-			slacker_event_loop(&ev);
+			event_loop(&ev);
 			// handler[ev.type](&ev);
 			break;
 		case MotionNotify:
@@ -1456,7 +1392,7 @@ void run(void)
 	XSync(dpy, False);
 	/* main event loop */
 	while (is_running && !XNextEvent(dpy, &ev)) {
-		slacker_event_loop(&ev);
+		event_loop(&ev);
 	}
 }
 
@@ -1904,7 +1840,7 @@ void unmanage(Client *c, int destroyed)
 	arrange(m);
 }
 
-void unmapnotify(XEvent *e)
+void event_unmapnotify(XEvent *e)
 {
 	Client *c;
 	XUnmapEvent *ev = &e->xunmap;
