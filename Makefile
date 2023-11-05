@@ -7,7 +7,6 @@ BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/obj
 BIN_DIR = $(BUILD_DIR)/bin
 DIST_DIR = $(BUILD_DIR)/dist
-CONFIG_FILE = $(SRC_DIR)/config.c
 
 include make/compiler_settings.mk
 include make/canned_recipes.mk

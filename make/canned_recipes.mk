@@ -3,10 +3,6 @@ define _setup =
 	@mkdir -p $(OBJ_DIR)
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(DIST_DIR)
-
-	if [ ! -f $(CONFIG_FILE) ]; then
-		cp -v $(SRC_DIR)/config.c.def $(CONFIG_FILE)
-	fi
 endef
 
 
