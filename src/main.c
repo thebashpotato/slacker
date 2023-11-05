@@ -6,18 +6,13 @@
 /// events about window (dis-)appearance. Only one X connection at a time is
 /// allowed to select for this event mask.
 ///
-/// The event handlers of slacker are organized in an array which is accessed
-/// whenever a new event has been fetched. This allows event dispatching
-/// in O(1) time.
-///
 /// Each child of the root window is called a client, except windows which have
 /// set the override_redirect flag. Clients are organized in a linked client
 /// list on each monitor, the focus history is remembered through a stack list
 /// on each monitor. Each client contains a bit array to indicate the tags of a
 /// client.
 ///
-/// Keys and tagging WINDOW_RULES are organized as arrays and defined in
-/// config.h.
+/// Keys and tagging WINDOW_RULES are organized as arrays and defined in config.c
 ///
 /// To understand everything else, start reading main().
 
@@ -31,6 +26,8 @@
 #include <X11/keysym.h>
 
 // Standard Libraries
+#include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
 #include <errno.h>
 #include <locale.h>
 #include <signal.h>
@@ -52,6 +49,7 @@
 #include "modifiers.h"
 #include "monitor.h"
 #include "utils.h"
+#include "slacker.h"
 
 //////////////////////////////////////////
 /// Window Mangager specific macros
@@ -60,7 +58,7 @@
 #define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
 
 #define CLEANMASK(mask)                                              \
-	(mask & ~(numlockmask | LockMask) &                          \
+	(mask & ~(g_slacker.numlockmask | LockMask) &                \
 	 (ShiftMask | ControlMask | Mod1Mask | Mod2Mask | Mod3Mask | \
 	  Mod4Mask | Mod5Mask))
 
@@ -68,57 +66,27 @@
 	(MAX(0, MIN((x) + (w), (m)->wx + (m)->ww) - MAX((x), (m)->wx)) * \
 	 MAX(0, MIN((y) + (h), (m)->wy + (m)->wh) - MAX((y), (m)->wy)))
 
-#define ISVISIBLE(C) ((C->tags & C->mon->tagset[C->mon->seltags]))
+#define ISVISIBLE(Client) \
+	((Client->tags & Client->mon->tagset[Client->mon->seltags]))
+
 #define MOUSEMASK (BUTTONMASK | PointerMotionMask)
+
 #define WIDTH(X) ((X)->w + 2 * (X)->bw)
+
 #define HEIGHT(X) ((X)->h + 2 * (X)->bw)
+
 #define TAGMASK ((1 << LENGTH(GLOBAL_TAGS)) - 1)
-#define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + left_right_padding_sum)
+
+#define TEXTW(X)                                     \
+	(drw_fontset_getwidth(g_slacker.draw, (X)) + \
+	 g_slacker.left_right_padding_sum)
 
 //////////////////////
 /// Global variables
 //////////////////////
 
 /// Client text which displays in the bar when the client is broken
-static const char broken[] = "broken";
-/// Current client text which displays in the bar
-static char stext[MAX_CLIENT_NAME_LEN];
-/// X screen id
-static int32_t screen;
-/// X display screen geometry width
-static int32_t screen_width;
-/// X display screen geometry height
-static int32_t screen_height;
-/// Bar height
-static int32_t bar_height;
-/// Sum of left and right padding for text
-static int32_t left_right_padding_sum;
-/// X error callback function
-static int32_t (*xerrorxlib)(Display *, XErrorEvent *);
-/// Num lock mask
-static uint32_t numlockmask = 0;
-/// Window manager Atoms
-static Atom wmatom[SlackerDefaultAtom_WMLast];
-/// Net Atoms
-static Atom netatom[SlackerEWMHAtom_NetLast];
-/// Is the window manager running
-static bool is_running = true;
-/// Slacker cursor states
-static SlackerCursor *cursor[SlackerCursorState_Last];
-/// Slacker color schemes
-static SlackerColor **scheme;
-/// X display
-static Display *dpy;
-/// Drawable abstraction
-static Drw *drw;
-/// All connected monitors
-static Monitor *mons;
-/// Currently selected monitor
-static Monitor *selmon;
-/// Root window
-static Window root;
-/// Window manager check window
-static Window wmcheckwin;
+static const char BROKEN[] = "broken";
 
 /// @brief compile-time check if all tags fit into an unsigned int bit array
 struct NumTags {
@@ -129,61 +97,70 @@ struct NumTags {
 /// Function declarations
 /////////////////////////////
 
-static void applyrules(Client *c);
-static int applysizehints(Client *c, int *x, int *y, int *w, int *h,
-			  int interact);
-static void arrange(Monitor *m);
-static void arrangemon(Monitor *m);
-static void attach(Client *c);
-static void attachstack(Client *c);
-static void checkotherwm(void);
-static void cleanup(void);
-static void cleanupmon(Monitor *m);
-static void configure(Client *c);
-static Monitor *createmon(void);
-static void detach(Client *c);
-static void detachstack(Client *c);
-static Monitor *dirtomon(int dir);
-static void drawbar(Monitor *m);
-static void drawbars(void);
-static void focus(Client *c);
-static Atom getatomprop(Client *c, Atom prop);
-static int getrootptr(int *x, int *y);
-static long getstate(Window w);
-static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
-static void grabbuttons(Client *c, int focused);
-static void grabkeys(void);
-static void manage(Window w, XWindowAttributes *wa);
-static Client *nexttiled(Client *c);
-static void pop(Client *c);
-static Monitor *recttomon(int x, int y, int w, int h);
-static void resize(Client *c, int x, int y, int w, int h, int interact);
-static void resizeclient(Client *c, int x, int y, int w, int h);
-static void restack(Monitor *m);
-static void run(void);
-static void scan(void);
-static int sendevent(Client *c, Atom proto);
-static void sendmon(Client *c, Monitor *m);
-static void setclientstate(Client *c, long state);
-static void setfocus(Client *c);
-static void setfullscreen(Client *c, int fullscreen);
-static void setup(void);
-static void seturgent(Client *c, int urg);
-static void showhide(Client *c);
-static void unfocus(Client *c, int setfocus);
-static void unmanage(Client *c, int destroyed);
-static void updatebarpos(Monitor *m);
-static void updatebars(void);
-static void updateclientlist(void);
-static int updategeom(void);
-static void updatenumlockmask(void);
-static void updatesizehints(Client *c);
-static void updatestatus(void);
-static void updatetitle(Client *c);
-static void updatewindowtype(Client *c);
-static void updatewmhints(Client *c);
-static Client *wintoclient(Window w);
-static Monitor *wintomon(Window w);
+static void Slacker__applyrules(Client *client);
+static int32_t Slacker__applysizehints(Client *client, int *x, int *y, int *w,
+				       int *h, int interact);
+static void Slacker__arrange_monitors(Monitor *monitor);
+static void Monitor__arrange(Monitor *monitor);
+static void Client__attach(Client *client);
+static void Client__attach_to_stack(Client *client);
+static void Slacker__checkotherwm(void);
+static void Slacker__destroy(void);
+static void Monitor__destroy(Monitor *monitor);
+static void Client__configure(Client *client);
+static Monitor *Monitor__create(void);
+static void Client__detach(Client *client);
+static void Client__detach_from_stack(Client *client);
+static Monitor *Slacker__dir_to_monitor(int dir);
+static void Slacker__drawbar(Monitor *monitor);
+static void Slacker__drawbars(void);
+static void Slacker__focus(Client *client);
+static Atom Slacker__get_atom_prop(Client *client, Atom prop);
+static int32_t Slacker__getrootptr(int *x, int *y);
+static int64_t Slacker__getstate(Window w_id);
+static int32_t Slacker__get_text_prop(Window w_id, Atom atom, char *text,
+				      uint32_t size);
+static void Slacker__grab_buttons(Client *client, bool focused);
+static void Slacker__grab_keys(void);
+static void Slacker__manage(Window w_id, XWindowAttributes *wa);
+static Client *Client__next_tiled(Client *client);
+static void Client__pop(Client *client);
+static Monitor *Slacker__rect_to_monitor(int x, int y, int w, int h);
+static void Client__resize(Client *client, int x, int y, int w, int h,
+			   int interact);
+static void Slacker__resize_client(Client *client, int x, int y, int w, int h);
+static void Slacker__restack(Monitor *monitor);
+static void Slacker__run(void);
+static void Slacker__scan(void);
+
+/// @brief Sends an an event to a client if a supported protocol is found.
+///
+/// @param `client` The client to send the event to
+/// @param `proto` The protocol to send to the client
+///
+/// @returns true if the client supports the protocol and the event was sent, false otherwise.
+static bool Slacker__send_event(Client *client, Atom proto);
+static void Client__send_to_monitor(Client *client, Monitor *monitor);
+static void Slacker__set_client_state(Client *client, int64_t state);
+static void Slacker__setfocus(Client *client);
+static void Slacker__setfullscreen(Client *client, int fullscreen);
+static void Slacker__create(void);
+static void Slacker__seturgent(Client *client, int urgent);
+static void Slacker__showhide(Client *client);
+static void Slacker__unfocus(Client *client, int setfocus);
+static void Slacker__unmanage(Client *client, int destroyed);
+static void Monitor__updatebarpos(Monitor *monitor);
+static void Slacker__updatebars(void);
+static void Slacker__update_client_list(void);
+static bool Slacker__updategeom(void);
+static void Slacker__update_numlock_mask(void);
+static void updatesizehints(Client *client);
+static void Slacker__update_status(void);
+static void Slacker__update_client_title(Client *client);
+static void Slacker__update_window_type(Client *client);
+static void Slacker__update_wmhints(Client *client);
+static Client *Slacker__win_to_client(Window w_id);
+static Monitor *Slacker__wintomon(Window w_id);
 static int xerror(Display *dpy, XErrorEvent *ee);
 static int xerrordummy(Display *dpy, XErrorEvent *ee);
 static int xerrorstart(Display *dpy, XErrorEvent *ee);
@@ -192,33 +169,40 @@ static int xerrorstart(Display *dpy, XErrorEvent *ee);
 /// Function implementations
 ///////////////////////////////
 
-void applyrules(Client *c)
+/// @brief Applies X window rules to a client
+void Slacker__applyrules(Client *client)
 {
-	const char *class, *instance;
-	uint32_t i;
-	const WindowRule *r;
-	Monitor *m;
+	const char *class = NULL;
+	const char *instance = NULL;
+	const WindowRule *window_rule = NULL;
+	Monitor *temp_monitor = NULL;
 	XClassHint ch = { NULL, NULL };
 
-	/* rule matching */
-	c->isfloating = 0;
-	c->tags = 0;
-	XGetClassHint(dpy, c->win, &ch);
-	class = ch.res_class ? ch.res_class : broken;
-	instance = ch.res_name ? ch.res_name : broken;
+	// Rule matching
+	client->isfloating = 0;
+	client->tags = 0;
+	XGetClassHint(g_slacker.display, client->win, &ch);
+	class = ch.res_class ? ch.res_class : BROKEN;
+	instance = ch.res_name ? ch.res_name : BROKEN;
 
-	for (i = 0; i < LENGTH(GLOBAL_WINDOW_RULES); i++) {
-		r = &GLOBAL_WINDOW_RULES[i];
-		if ((!r->title || strstr(c->name, r->title)) &&
-		    (!r->window_class || strstr(class, r->window_class)) &&
-		    (!r->instance || strstr(instance, r->instance))) {
-			c->isfloating = r->isfloating;
-			c->tags |= r->tags;
-			for (m = mons; m && m->num != r->monitor; m = m->next) {
+	for (uint32_t i = 0; i < LENGTH(GLOBAL_WINDOW_RULES); ++i) {
+		window_rule = &GLOBAL_WINDOW_RULES[i];
+		if ((!window_rule->title ||
+		     strstr(client->name, window_rule->title)) &&
+		    (!window_rule->window_class ||
+		     strstr(class, window_rule->window_class)) &&
+		    (!window_rule->instance ||
+		     strstr(instance, window_rule->instance))) {
+			client->isfloating = window_rule->isfloating;
+			client->tags |= window_rule->tags;
+			for (temp_monitor = g_slacker.monitor_list;
+			     temp_monitor &&
+			     temp_monitor->num != window_rule->monitor;
+			     temp_monitor = temp_monitor->next) {
 				;
 			}
-			if (m) {
-				c->mon = m;
+			if (temp_monitor) {
+				client->mon = temp_monitor;
 			}
 		}
 	}
@@ -231,159 +215,236 @@ void applyrules(Client *c)
 		XFree(ch.res_name);
 	}
 
-	c->tags = c->tags & TAGMASK ? c->tags & TAGMASK :
-				      c->mon->tagset[c->mon->seltags];
+	client->tags = client->tags & TAGMASK ?
+			       client->tags & TAGMASK :
+			       client->mon->tagset[client->mon->seltags];
 }
 
-int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
+/// @brief Apply window size hints to a client
+///
+/// TODO: This function is a mess and needs to be cleaned up.
+/// x, y, w, and h should all be in a Rect struct.
+/// the only slacker variables that are used are screen_width and height
+/// which should be moved into their own struct called Screen.
+int Slacker__applysizehints(Client *client, int *x, int *y, int *w, int *h,
+			    int interact)
 {
-	int baseismin;
-	Monitor *m = c->mon;
+	int32_t baseismin = 0;
+	Monitor *temp_monitor = client->mon;
 
-	/* set minimum possible */
+	// set minimum possible
 	*w = MAX(1, *w);
 	*h = MAX(1, *h);
+
 	if (interact) {
-		if (*x > screen_width)
-			*x = screen_width - WIDTH(c);
-		if (*y > screen_height)
-			*y = screen_height - HEIGHT(c);
-		if (*x + *w + 2 * c->bw < 0)
+		if (*x > g_slacker.screen_width) {
+			*x = g_slacker.screen_width - WIDTH(client);
+		}
+		if (*y > g_slacker.screen_height) {
+			*y = g_slacker.screen_height - HEIGHT(client);
+		}
+		if (*x + *w + 2 * client->bw < 0) {
 			*x = 0;
-		if (*y + *h + 2 * c->bw < 0)
+		}
+		if (*y + *h + 2 * client->bw < 0) {
 			*y = 0;
+		}
 	} else {
-		if (*x >= m->wx + m->ww)
-			*x = m->wx + m->ww - WIDTH(c);
-		if (*y >= m->wy + m->wh)
-			*y = m->wy + m->wh - HEIGHT(c);
-		if (*x + *w + 2 * c->bw <= m->wx)
-			*x = m->wx;
-		if (*y + *h + 2 * c->bw <= m->wy)
-			*y = m->wy;
+		if (*x >= temp_monitor->wx + temp_monitor->ww) {
+			*x = temp_monitor->wx + temp_monitor->ww -
+			     WIDTH(client);
+		}
+		if (*y >= temp_monitor->wy + temp_monitor->wh) {
+			*y = temp_monitor->wy + temp_monitor->wh -
+			     HEIGHT(client);
+		}
+		if (*x + *w + 2 * client->bw <= temp_monitor->wx) {
+			*x = temp_monitor->wx;
+		}
+		if (*y + *h + 2 * client->bw <= temp_monitor->wy) {
+			*y = temp_monitor->wy;
+		}
 	}
-	if (*h < bar_height)
-		*h = bar_height;
-	if (*w < bar_height)
-		*w = bar_height;
-	if (GLOBAL_RESIZE_HINTS || c->isfloating ||
-	    !c->mon->lt[c->mon->sellt]->arrange) {
-		if (!c->hintsvalid)
-			updatesizehints(c);
-		/* see last two sentences in ICCCM 4.1.2.3 */
-		baseismin = c->basew == c->minw && c->baseh == c->minh;
-		if (!baseismin) { /* temporarily remove base dimensions */
-			*w -= c->basew;
-			*h -= c->baseh;
-		}
-		/* adjust for aspect limits */
-		if (c->mina > 0 && c->maxa > 0) {
-			if (c->maxa < (float)*w / *h)
-				*w = *h * c->maxa + 0.5;
-			else if (c->mina < (float)*h / *w)
-				*h = *w * c->mina + 0.5;
-		}
-		if (baseismin) { /* increment calculation requires this */
-			*w -= c->basew;
-			*h -= c->baseh;
-		}
-		/* adjust for increment value */
-		if (c->incw)
-			*w -= *w % c->incw;
-		if (c->inch)
-			*h -= *h % c->inch;
-		/* restore base dimensions */
-		*w = MAX(*w + c->basew, c->minw);
-		*h = MAX(*h + c->baseh, c->minh);
-		if (c->maxw)
-			*w = MIN(*w, c->maxw);
-		if (c->maxh)
-			*h = MIN(*h, c->maxh);
+
+	if (*h < g_slacker.bar_height) {
+		*h = g_slacker.bar_height;
 	}
-	return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
+	if (*w < g_slacker.bar_height) {
+		*w = g_slacker.bar_height;
+	}
+
+	if (GLOBAL_RESIZE_HINTS || client->isfloating ||
+	    !client->mon->layouts[client->mon->selected_layout]
+		     ->layout_arrange_callback) {
+		if (!client->hintsvalid) {
+			updatesizehints(client);
+		}
+
+		// See last two sentences in ICCCM 4.1.2.3
+		baseismin = client->basew == client->minw &&
+			    client->baseh == client->minh;
+
+		// Temporarily remove base dimensions
+		if (!baseismin) {
+			*w -= client->basew;
+			*h -= client->baseh;
+		}
+
+		// adjust for aspect limits
+		if (client->mina > 0 && client->maxa > 0) {
+			if (client->maxa < (float)*w / *h) {
+				*w = *h * client->maxa + 0.5;
+			} else if (client->mina < (float)*h / *w) {
+				*h = *w * client->mina + 0.5;
+			}
+		}
+		// The increment caclulation requires this
+		if (baseismin) {
+			*w -= client->basew;
+			*h -= client->baseh;
+		}
+
+		// Adjust for increment value
+		if (client->incw) {
+			*w -= *w % client->incw;
+		}
+
+		if (client->inch) {
+			*h -= *h % client->inch;
+		}
+
+		// Restore base dimensions
+		*w = MAX(*w + client->basew, client->minw);
+		*h = MAX(*h + client->baseh, client->minh);
+
+		if (client->maxw) {
+			*w = MIN(*w, client->maxw);
+		}
+
+		if (client->maxh) {
+			*h = MIN(*h, client->maxh);
+		}
+	}
+	return *x != client->x || *y != client->y || *w != client->w ||
+	       *h != client->h;
 }
 
-void arrange(Monitor *m)
+/// @brief Top level arrange function. Manages n monitors.
+///
+/// @details If the monitor is NULL, iterate through the linked list of monitors and
+/// decided whether to show or hide them.
+///
+/// @param `monitor` Takes a single monitor instead of a list of monitors, since a Client holds
+/// a pointer to a single monitor.
+void Slacker__arrange_monitors(Monitor *monitor)
 {
-	if (m)
-		showhide(m->stack);
-	else
-		for (m = mons; m; m = m->next)
-			showhide(m->stack);
-	if (m) {
-		arrangemon(m);
-		restack(m);
-	} else
-		for (m = mons; m; m = m->next)
-			arrangemon(m);
+	if (monitor) {
+		Slacker__showhide(monitor->client_stack);
+	} else {
+		for (monitor = g_slacker.monitor_list; monitor;
+		     monitor = monitor->next) {
+			Slacker__showhide(monitor->client_stack);
+		}
+	}
+
+	if (monitor) {
+		Monitor__arrange(monitor);
+		Slacker__restack(monitor);
+	} else {
+		for (monitor = g_slacker.monitor_list; monitor;
+		     monitor = monitor->next) {
+			Monitor__arrange(monitor);
+		}
+	}
 }
 
-void arrangemon(Monitor *m)
+/// @brief Updates the layout symbol, then calls the layout's arrange function
+/// for the given monitor.
+void Monitor__arrange(Monitor *monitor)
 {
-	strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, sizeof m->ltsymbol);
-	if (m->lt[m->sellt]->arrange)
-		m->lt[m->sellt]->arrange(m);
+	strncpy(monitor->layout_symbol,
+		monitor->layouts[monitor->selected_layout]->symbol,
+		sizeof(monitor->layout_symbol));
+
+	if (monitor->layouts[monitor->selected_layout]->layout_arrange_callback) {
+		monitor->layouts[monitor->selected_layout]
+			->layout_arrange_callback(monitor);
+	}
 }
 
-void attach(Client *c)
+/// @brief Adds a client to the front of a monitor's client list.
+void Client__attach(Client *client)
 {
-	c->next = c->mon->clients;
-	c->mon->clients = c;
+	client->next = client->mon->client_list;
+	client->mon->client_list = client;
 }
 
-void attachstack(Client *c)
+/// @brief Adds a client to the front of a monitor's stack list.
+void Client__attach_to_stack(Client *client)
 {
-	c->snext = c->mon->stack;
-	c->mon->stack = c;
+	client->stack_next = client->mon->client_stack;
+	client->mon->client_stack = client;
 }
 
+/// @brief Button press event handler
+///
+/// @param `event` The X event context
 void event_buttonpress(XEvent *event)
 {
-	unsigned int i, x, click;
+	uint32_t i = 0;
+	uint32_t x = 0;
+	uint32_t click = SlackerClick_RootWin;
 	Arg arg = { 0 };
-	Client *c;
-	Monitor *m;
+	Client *temp_client = NULL;
+	Monitor *temp_monitor = NULL;
 	XButtonPressedEvent *ev = &event->xbutton;
 
-	click = SlackerClick_RootWin;
-	/* focus monitor if necessary */
-	if ((m = wintomon(ev->window)) && m != selmon) {
-		unfocus(selmon->sel, 1);
-		selmon = m;
-		focus(NULL);
+	// Focus monitor if necessary
+	if ((temp_monitor = Slacker__wintomon(ev->window)) &&
+	    temp_monitor != g_slacker.selected_monitor) {
+		Slacker__unfocus(g_slacker.selected_monitor->selected_client,
+				 1);
+		g_slacker.selected_monitor = temp_monitor;
+		Slacker__focus(NULL);
 	}
 
-	if (ev->window == selmon->barwin) {
-		i = x = 0;
-		do
+	// Check if the button press was a click on the bar
+	if (ev->window == g_slacker.selected_monitor->barwin) {
+		do {
 			x += TEXTW(GLOBAL_TAGS[i]);
-		while (ev->x >= x && ++i < LENGTH(GLOBAL_TAGS));
+		} while (ev->x >= x && ++i < LENGTH(GLOBAL_TAGS));
+
 		if (i < LENGTH(GLOBAL_TAGS)) {
 			click = SlackerClick_TagBar;
 			arg.ui = 1 << i;
-		} else if (ev->x < x + TEXTW(selmon->ltsymbol)) {
+		} else if (ev->x < x + TEXTW(g_slacker.selected_monitor
+						     ->layout_symbol)) {
 			click = SlackerClick_LtSymbol;
-		} else if (ev->x > selmon->ww - (int)TEXTW(stext)) {
+		} else if (ev->x > g_slacker.selected_monitor->ww -
+					   (int)TEXTW(g_slacker.status_text)) {
 			click = SlackerClick_StatusText;
 		} else {
 			click = SlackerClick_WinTitle;
 		}
 	}
 
-	if ((c = wintoclient(ev->window))) {
-		focus(c);
-		restack(selmon);
-		XAllowEvents(dpy, ReplayPointer, CurrentTime);
+	if ((temp_client = Slacker__win_to_client(ev->window))) {
+		Slacker__focus(temp_client);
+		Slacker__restack(g_slacker.selected_monitor);
+		XAllowEvents(g_slacker.display, ReplayPointer, CurrentTime);
 		click = SlackerClick_ClientWin;
 	}
 
-	for (i = 0; i < LENGTH(GLOBAL_CLICKABLE_BUTTONS); i++) {
+	// Check to see if we have a button handler for the click we have registered.
+	for (i = 0; i < LENGTH(GLOBAL_CLICKABLE_BUTTONS); ++i) {
+		// If we have a match, the callback is not a null function,
+		// and
 		if (click == GLOBAL_CLICKABLE_BUTTONS[i].click &&
-		    GLOBAL_CLICKABLE_BUTTONS[i].func &&
+		    GLOBAL_CLICKABLE_BUTTONS[i].button_handler_callback &&
 		    GLOBAL_CLICKABLE_BUTTONS[i].button == ev->button &&
 		    CLEANMASK(GLOBAL_CLICKABLE_BUTTONS[i].mask) ==
 			    CLEANMASK(ev->state)) {
-			GLOBAL_CLICKABLE_BUTTONS[i].func(
+			GLOBAL_CLICKABLE_BUTTONS[i].button_handler_callback(
 				click == SlackerClick_TagBar &&
 						GLOBAL_CLICKABLE_BUTTONS[i]
 								.arg.i == 0 ?
@@ -393,201 +454,273 @@ void event_buttonpress(XEvent *event)
 	}
 }
 
-void checkotherwm(void)
+/// @brief check if another window manager is running.
+void Slacker__checkotherwm(void)
 {
-	xerrorxlib = XSetErrorHandler(xerrorstart);
-	/* this causes an error if some other window manager is running */
-	XSelectInput(dpy, DefaultRootWindow(dpy), SubstructureRedirectMask);
-	XSync(dpy, False);
+	g_slacker.xerrorxlib = XSetErrorHandler(xerrorstart);
+	// This will cause an X11 error to be triggered if another window manager is running.
+	// The error is handlered by the slacker custom xerrorxlib function.
+	XSelectInput(g_slacker.display, DefaultRootWindow(g_slacker.display),
+		     SubstructureRedirectMask);
+	XSync(g_slacker.display, False);
 	XSetErrorHandler(xerror);
-	XSync(dpy, False);
+	XSync(g_slacker.display, False);
 }
 
-void cleanup(void)
+/// @brief Frees all memory allocated by the window manager.
+///
+/// @details The following resources are freed:
+/// - All monitors
+/// - All cursors
+/// - All color schemes
+/// - The check window
+/// - The drawable abstraction
+void Slacker__destroy(void)
 {
 	Arg a = { .ui = ~0 };
 	Layout foo = { "", NULL };
-	Monitor *m;
-	size_t i;
+	Monitor *temp_monitor = NULL;
 
-	view(&a);
-	selmon->lt[selmon->sellt] = &foo;
+	Slacker__view(&a);
+	g_slacker.selected_monitor
+		->layouts[g_slacker.selected_monitor->selected_layout] = &foo;
 
 	// iterate through all monitors and unmanage all client windows
-	for (m = mons; m; m = m->next) {
-		while (m->stack) {
-			unmanage(m->stack, 0);
+	for (temp_monitor = g_slacker.monitor_list; temp_monitor;
+	     temp_monitor = temp_monitor->next) {
+		while (temp_monitor->client_stack) {
+			Slacker__unmanage(temp_monitor->client_stack, 0);
 		}
 	}
 
 	// force ungrabbing of any key presses on the root window
-	XUngrabKey(dpy, AnyKey, AnyModifier, root);
+	XUngrabKey(g_slacker.display, AnyKey, AnyModifier, g_slacker.root);
 
 	// free all monitors
-	while (mons) {
-		cleanupmon(mons);
+	while (g_slacker.monitor_list) {
+		Monitor__destroy(g_slacker.monitor_list);
 	}
 
 	// free all cursors
-	for (i = 0; i < SlackerCursorState_Last; i++) {
-		drw_cur_free(drw, cursor[i]);
+	for (size_t i = 0; i < SlackerCursorState_Last; ++i) {
+		drw_cur_free(g_slacker.draw, g_slacker.cursor[i]);
 	}
 
 	// free all color schemes
-	for (i = 0; i < LENGTH(GLOBAL_COLORSCHEMES); i++) {
-		free(scheme[i]);
+	for (size_t i = 0; i < LENGTH(GLOBAL_COLORSCHEMES); ++i) {
+		if (g_slacker.scheme[i]) {
+			free(g_slacker.scheme[i]);
+		}
 	}
-	free(scheme);
+	if (g_slacker.scheme) {
+		free(g_slacker.scheme);
+	}
 
-	// Free window
-	XDestroyWindow(dpy, wmcheckwin);
+	// Free the check window
+	XDestroyWindow(g_slacker.display, g_slacker.wmcheckwin);
 
 	// Free the drawable abstraction
-	drw_free(drw);
+	drw_free(g_slacker.draw);
 
-	XSync(dpy, False);
-	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
-	XDeleteProperty(dpy, root, netatom[SlackerEWMHAtom_NetActiveWindow]);
+	XSync(g_slacker.display, False);
+	XSetInputFocus(g_slacker.display, PointerRoot, RevertToPointerRoot,
+		       CurrentTime);
+	XDeleteProperty(g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetActiveWindow]);
 }
 
-void cleanupmon(Monitor *m)
+/// @brief Destroys a monitor and frees all memory allocated to it.
+///
+/// @details Also unmaps the bar window and destroys it.
+void Monitor__destroy(Monitor *monitor)
 {
 	Monitor *temp_mon;
 
-	if (m == mons) {
-		mons = mons->next;
+	if (monitor == g_slacker.monitor_list) {
+		g_slacker.monitor_list = g_slacker.monitor_list->next;
 	} else {
-		for (temp_mon = mons; temp_mon && temp_mon->next != m;
+		for (temp_mon = g_slacker.monitor_list;
+		     temp_mon && temp_mon->next != monitor;
 		     temp_mon = temp_mon->next) {
 			;
 		}
-		temp_mon->next = m->next;
+		temp_mon->next = monitor->next;
 	}
-	XUnmapWindow(dpy, m->barwin);
-	XDestroyWindow(dpy, m->barwin);
-	free(m);
+	XUnmapWindow(g_slacker.display, monitor->barwin);
+	XDestroyWindow(g_slacker.display, monitor->barwin);
+	free(monitor);
 }
 
+/// @brief Client message event handler
+///
+/// @details Handles setting a window to full screen and setting a window to urgent.
 void event_clientmessage(XEvent *event)
 {
 	XClientMessageEvent *cme = &event->xclient;
-	Client *c = wintoclient(cme->window);
+	Client *temp_client = Slacker__win_to_client(cme->window);
 
-	if (!c) {
+	if (!temp_client) {
 		return;
 	}
 
-	if (cme->message_type == netatom[SlackerEWMHAtom_NetWMState]) {
+	if (cme->message_type ==
+	    g_slacker.netatom[SlackerEWMHAtom_NetWMState]) {
 		if (cme->data.l[1] ==
-			    netatom[SlackerEWMHAtom_NetWMFullscreen] ||
-		    cme->data.l[2] == netatom[SlackerEWMHAtom_NetWMFullscreen])
-			setfullscreen(
-				c,
+			    g_slacker.netatom[SlackerEWMHAtom_NetWMFullscreen] ||
+		    cme->data.l[2] ==
+			    g_slacker.netatom[SlackerEWMHAtom_NetWMFullscreen]) {
+			Slacker__setfullscreen(
+				temp_client,
 				(cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
 				 ||
 				 (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ &&
-				  !c->isfullscreen)));
+				  !temp_client->isfullscreen)));
+		}
 	} else if (cme->message_type ==
-		   netatom[SlackerEWMHAtom_NetActiveWindow]) {
-		if (c != selmon->sel && !c->isurgent)
-			seturgent(c, 1);
+		   g_slacker.netatom[SlackerEWMHAtom_NetActiveWindow]) {
+		if (temp_client !=
+			    g_slacker.selected_monitor->selected_client &&
+		    !temp_client->isurgent) {
+			Slacker__seturgent(temp_client, 1);
+		}
 	}
 }
 
-void configure(Client *c)
+/// @brief Used by the ConfigureRequest event handler to configure a client.
+///
+/// @details Builds an XConfigureEvent struct and sents it to the client via its window id.
+void Client__configure(Client *client)
 {
 	XConfigureEvent ce;
 
 	ce.type = ConfigureNotify;
-	ce.display = dpy;
-	ce.event = c->win;
-	ce.window = c->win;
-	ce.x = c->x;
-	ce.y = c->y;
-	ce.width = c->w;
-	ce.height = c->h;
-	ce.border_width = c->bw;
+	ce.display = g_slacker.display;
+	ce.event = client->win;
+	ce.window = client->win;
+	ce.x = client->x;
+	ce.y = client->y;
+	ce.width = client->w;
+	ce.height = client->h;
+	ce.border_width = client->bw;
 	ce.above = None;
 	ce.override_redirect = False;
-	XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
+	XSendEvent(g_slacker.display, client->win, False, StructureNotifyMask,
+		   (XEvent *)&ce);
 }
 
 void event_configurenotify(XEvent *event)
 {
-	Monitor *m;
-	Client *c;
+	Monitor *temp_monitor = NULL;
+	Client *temp_client = NULL;
 	XConfigureEvent *ev = &event->xconfigure;
-	int dirty;
 
-	/* TODO: updategeom handling sucks, needs to be simplified */
-	if (ev->window == root) {
-		dirty = (screen_width != ev->width ||
-			 screen_height != ev->height);
-		screen_width = ev->width;
-		screen_height = ev->height;
-		if (updategeom() || dirty) {
-			drw_resize(drw, screen_width, bar_height);
-			updatebars();
-			for (m = mons; m; m = m->next) {
-				for (c = m->clients; c; c = c->next)
-					if (c->isfullscreen)
-						resizeclient(c, m->mx, m->my,
-							     m->mw, m->mh);
-				XMoveResizeWindow(dpy, m->barwin, m->wx, m->by,
-						  m->ww, bar_height);
+	// TODO: updategeom handling sucks, needs to be simplified
+	if (ev->window == g_slacker.root) {
+		int32_t dirty = (g_slacker.screen_width != ev->width ||
+				 g_slacker.screen_height != ev->height);
+		g_slacker.screen_width = ev->width;
+		g_slacker.screen_height = ev->height;
+		if (Slacker__updategeom() || dirty) {
+			drw_resize(g_slacker.draw, g_slacker.screen_width,
+				   g_slacker.bar_height);
+			Slacker__updatebars();
+			for (temp_monitor = g_slacker.monitor_list;
+			     temp_monitor; temp_monitor = temp_monitor->next) {
+				for (temp_client = temp_monitor->client_list;
+				     temp_client;
+				     temp_client = temp_client->next) {
+					if (temp_client->isfullscreen)
+						Slacker__resize_client(
+							temp_client,
+							temp_monitor->mx,
+							temp_monitor->my,
+							temp_monitor->mw,
+							temp_monitor->mh);
+				}
+				XMoveResizeWindow(
+					g_slacker.display, temp_monitor->barwin,
+					temp_monitor->wx, temp_monitor->by,
+					temp_monitor->ww, g_slacker.bar_height);
 			}
-			focus(NULL);
-			arrange(NULL);
+			Slacker__focus(NULL);
+			Slacker__arrange_monitors(NULL);
 		}
 	}
 }
 
 void event_configurerequest(XEvent *event)
 {
-	Client *c;
-	Monitor *m;
+	Client *temp_client = NULL;
+	Monitor *temp_monitor = NULL;
 	XConfigureRequestEvent *ev = &event->xconfigurerequest;
 	XWindowChanges wc;
 
-	if ((c = wintoclient(ev->window))) {
-		if (ev->value_mask & CWBorderWidth)
-			c->bw = ev->border_width;
-		else if (c->isfloating || !selmon->lt[selmon->sellt]->arrange) {
-			m = c->mon;
+	if ((temp_client = Slacker__win_to_client(ev->window))) {
+		if (ev->value_mask & CWBorderWidth) {
+			temp_client->bw = ev->border_width;
+		} else if (temp_client->isfloating ||
+			   !g_slacker.selected_monitor
+				    ->layouts[g_slacker.selected_monitor
+						      ->selected_layout]
+				    ->layout_arrange_callback) {
+			temp_monitor = temp_client->mon;
+
+			// Configure window x coordinate
 			if (ev->value_mask & CWX) {
-				c->oldx = c->x;
-				c->x = m->mx + ev->x;
+				temp_client->oldx = temp_client->x;
+				temp_client->x = temp_monitor->mx + ev->x;
 			}
+
+			// Configure window y coordinate
 			if (ev->value_mask & CWY) {
-				c->oldy = c->y;
-				c->y = m->my + ev->y;
+				temp_client->oldy = temp_client->y;
+				temp_client->y = temp_monitor->my + ev->y;
 			}
+
+			// Configure window width
 			if (ev->value_mask & CWWidth) {
-				c->oldw = c->w;
-				c->w = ev->width;
+				temp_client->oldw = temp_client->w;
+				temp_client->w = ev->width;
 			}
+
+			// Configure window height
 			if (ev->value_mask & CWHeight) {
-				c->oldh = c->h;
-				c->h = ev->height;
+				temp_client->oldh = temp_client->h;
+				temp_client->h = ev->height;
 			}
-			if ((c->x + c->w) > m->mx + m->mw && c->isfloating)
-				c->x = m->mx +
-				       (m->mw / 2 -
-					WIDTH(c) /
-						2); /* center in x direction */
-			if ((c->y + c->h) > m->my + m->mh && c->isfloating)
-				c->y = m->my +
-				       (m->mh / 2 -
-					HEIGHT(c) /
-						2); /* center in y direction */
+
+			// Center in x direction
+			if ((temp_client->x + temp_client->w) >
+				    temp_monitor->mx + temp_monitor->mw &&
+			    temp_client->isfloating) {
+				temp_client->x = temp_monitor->mx +
+						 (temp_monitor->mw / 2 -
+						  WIDTH(temp_client) / 2);
+			}
+
+			// Center in y direction
+			if ((temp_client->y + temp_client->h) >
+				    temp_monitor->my + temp_monitor->mh &&
+			    temp_client->isfloating) {
+				temp_client->y = temp_monitor->my +
+						 (temp_monitor->mh / 2 -
+						  HEIGHT(temp_client) / 2);
+			}
+
 			if ((ev->value_mask & (CWX | CWY)) &&
-			    !(ev->value_mask & (CWWidth | CWHeight)))
-				configure(c);
-			if (ISVISIBLE(c))
-				XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w,
-						  c->h);
-		} else
-			configure(c);
+			    !(ev->value_mask & (CWWidth | CWHeight))) {
+				Client__configure(temp_client);
+			}
+
+			if (ISVISIBLE(temp_client)) {
+				XMoveResizeWindow(
+					g_slacker.display, temp_client->win,
+					temp_client->x, temp_client->y,
+					temp_client->w, temp_client->h);
+			}
+		} else {
+			Client__configure(temp_client);
+		}
 	} else {
 		wc.x = ev->x;
 		wc.y = ev->y;
@@ -596,12 +729,14 @@ void event_configurerequest(XEvent *event)
 		wc.border_width = ev->border_width;
 		wc.sibling = ev->above;
 		wc.stack_mode = ev->detail;
-		XConfigureWindow(dpy, ev->window, ev->value_mask, &wc);
+		XConfigureWindow(g_slacker.display, ev->window, ev->value_mask,
+				 &wc);
 	}
-	XSync(dpy, False);
+	XSync(g_slacker.display, False);
 }
 
-Monitor *createmon(void)
+/// @brief Constructs a single monitor
+Monitor *Monitor__create(void)
 {
 	Monitor *m;
 
@@ -611,248 +746,391 @@ Monitor *createmon(void)
 	m->nmaster = GLOBAL_MASTER_COUNT;
 	m->showbar = GLOBAL_SHOW_BAR;
 	m->topbar = GLOBAL_TOP_BAR;
-	m->lt[0] = &GLOBAL_LAYOUTS[0];
-	m->lt[1] = &GLOBAL_LAYOUTS[1 % LENGTH(GLOBAL_LAYOUTS)];
-	strncpy(m->ltsymbol, GLOBAL_LAYOUTS[0].symbol, sizeof m->ltsymbol);
+	m->layouts[0] = &GLOBAL_LAYOUTS[0];
+	m->layouts[1] = &GLOBAL_LAYOUTS[1 % LENGTH(GLOBAL_LAYOUTS)];
+	strncpy(m->layout_symbol, GLOBAL_LAYOUTS[0].symbol,
+		sizeof m->layout_symbol);
 	return m;
 }
 
 void event_destroynotify(XEvent *event)
 {
-	Client *c;
+	Client *temp_client;
 	XDestroyWindowEvent *ev = &event->xdestroywindow;
 
-	if ((c = wintoclient(ev->window)))
-		unmanage(c, 1);
+	if ((temp_client = Slacker__win_to_client(ev->window))) {
+		Slacker__unmanage(temp_client, 1);
+	}
 }
 
-void detach(Client *c)
+/// @brief Detaches a client from a monitor's client list.
+void Client__detach(Client *client)
 {
 	Client **tc;
 
-	for (tc = &c->mon->clients; *tc && *tc != c; tc = &(*tc)->next)
+	for (tc = &client->mon->client_list; *tc && *tc != client;
+	     tc = &(*tc)->next) {
 		;
-	*tc = c->next;
+	}
+	*tc = client->next;
 }
 
-void detachstack(Client *c)
+/// @brief Detaches a client from a monitor's stack list.
+void Client__detach_from_stack(Client *client)
 {
 	Client **tc, *t;
 
-	for (tc = &c->mon->stack; *tc && *tc != c; tc = &(*tc)->snext)
+	for (tc = &client->mon->client_stack; *tc && *tc != client;
+	     tc = &(*tc)->stack_next) {
 		;
-	*tc = c->snext;
+	}
 
-	if (c == c->mon->sel) {
-		for (t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext)
+	*tc = client->stack_next;
+
+	if (client == client->mon->selected_client) {
+		for (t = client->mon->client_stack; t && !ISVISIBLE(t);
+		     t = t->stack_next) {
 			;
-		c->mon->sel = t;
+		}
+		client->mon->selected_client = t;
 	}
 }
 
-Monitor *dirtomon(int dir)
+/// @brief	Not sure what the purpose of this is, Debugging required.
+///
+/// @param `dir` TODO:
+Monitor *Slacker__dir_to_monitor(int dir)
 {
-	Monitor *m = NULL;
+	Monitor *temp_monitor = NULL;
 
 	if (dir > 0) {
-		if (!(m = selmon->next))
-			m = mons;
-	} else if (selmon == mons)
-		for (m = mons; m->next; m = m->next)
+		if (!(temp_monitor = g_slacker.selected_monitor->next)) {
+			temp_monitor = g_slacker.monitor_list;
+		}
+
+	} else if (g_slacker.selected_monitor == g_slacker.monitor_list) {
+		for (temp_monitor = g_slacker.monitor_list; temp_monitor->next;
+		     temp_monitor = temp_monitor->next) {
 			;
-	else
-		for (m = mons; m->next != selmon; m = m->next)
+		}
+
+	} else {
+		for (temp_monitor = g_slacker.monitor_list;
+		     temp_monitor->next != g_slacker.selected_monitor;
+		     temp_monitor = temp_monitor->next) {
 			;
-	return m;
-}
-
-void drawbar(Monitor *m)
-{
-	int x, w, tw = 0;
-	int boxs = drw->fonts->h / 9;
-	int boxw = drw->fonts->h / 6 + 2;
-	unsigned int i, occ = 0, urg = 0;
-	Client *c;
-
-	if (!m->showbar)
-		return;
-
-	/* draw status first so it can be overdrawn by tags later */
-	if (m == selmon) { /* status is only drawn on selected monitor */
-		drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-		tw = TEXTW(stext) - left_right_padding_sum +
-		     2; /* 2px right padding */
-		drw_text(drw, m->ww - tw, 0, tw, bar_height, 0, stext, 0);
-	}
-
-	for (c = m->clients; c; c = c->next) {
-		occ |= c->tags;
-		if (c->isurgent)
-			urg |= c->tags;
-	}
-	x = 0;
-	for (i = 0; i < LENGTH(GLOBAL_TAGS); i++) {
-		w = TEXTW(GLOBAL_TAGS[i]);
-		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ?
-						  SlackerColorscheme_Sel :
-						  SlackerColorscheme_Norm]);
-		drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2,
-			 GLOBAL_TAGS[i], urg & 1 << i);
-		if (occ & 1 << i)
-			drw_rect(drw, x + boxs, boxs, boxw, boxw,
-				 m == selmon && selmon->sel &&
-					 selmon->sel->tags & 1 << i,
-				 urg & 1 << i);
-		x += w;
-	}
-	w = TEXTW(m->ltsymbol);
-	drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-	x = drw_text(drw, x, 0, w, bar_height, left_right_padding_sum / 2,
-		     m->ltsymbol, 0);
-
-	if ((w = m->ww - tw - x) > bar_height) {
-		if (m->sel) {
-			drw_setscheme(
-				drw,
-				scheme[m == selmon ? SlackerColorscheme_Sel :
-						     SlackerColorscheme_Norm]);
-			drw_text(drw, x, 0, w, bar_height,
-				 left_right_padding_sum / 2, m->sel->name, 0);
-			if (m->sel->isfloating)
-				drw_rect(drw, x + boxs, boxs, boxw, boxw,
-					 m->sel->isfixed, 0);
-		} else {
-			drw_setscheme(drw, scheme[SlackerColorscheme_Norm]);
-			drw_rect(drw, x, 0, w, bar_height, 1, 1);
 		}
 	}
-	drw_map(drw, m->barwin, 0, 0, m->ww, bar_height);
+
+	return temp_monitor;
 }
 
-void drawbars(void)
+/// @brief Draws the bar for a monitor.
+///
+/// @details TODO: Document this function in detail, and refactor.
+void Slacker__drawbar(Monitor *monitor)
 {
-	Monitor *m;
+	int32_t x = 0;
+	int32_t w = 0;
+	int32_t text_width = 0;
+	int32_t boxs = g_slacker.draw->fonts->h / 9;
+	int32_t boxw = g_slacker.draw->fonts->h / 6 + 2;
+	uint32_t i = 0;
+	uint32_t occ = 0;
+	uint32_t urgent = 0;
+	Client *temp_client;
 
-	for (m = mons; m; m = m->next)
-		drawbar(m);
+	if (!monitor->showbar) {
+		return;
+	}
+
+	// Draw status first so it can be overdrawn by tags later.
+	// Status is only drawn on the selected monitor
+	if (monitor == g_slacker.selected_monitor) {
+		// Calculate the width of the status text and add 2x padding
+		text_width = TEXTW(g_slacker.status_text) -
+			     (g_slacker.left_right_padding_sum + 2);
+
+		drw_setscheme(g_slacker.draw,
+			      g_slacker.scheme[SlackerColorscheme_Norm]);
+
+		drw_text(g_slacker.draw, (monitor->ww - text_width), 0,
+			 text_width, g_slacker.bar_height, 0,
+			 g_slacker.status_text, 0);
+	}
+
+	for (temp_client = monitor->client_list; temp_client;
+	     temp_client = temp_client->next) {
+		occ |= temp_client->tags;
+		if (temp_client->isurgent) {
+			urgent |= temp_client->tags;
+		}
+	}
+
+	// Draw the tags
+	for (i = 0; i < LENGTH(GLOBAL_TAGS); ++i) {
+		w = TEXTW(GLOBAL_TAGS[i]);
+		drw_setscheme(
+			g_slacker.draw,
+			g_slacker.scheme[monitor->tagset[monitor->seltags] &
+							 1 << i ?
+						 SlackerColorscheme_Sel :
+						 SlackerColorscheme_Norm]);
+
+		drw_text(g_slacker.draw, x, 0, w, g_slacker.bar_height,
+			 (g_slacker.left_right_padding_sum / 2), GLOBAL_TAGS[i],
+			 urgent & 1 << i);
+
+		if (occ & 1 << i) {
+			drw_rect(
+				g_slacker.draw, (x + boxs), boxs, boxw, boxw,
+				monitor == g_slacker.selected_monitor &&
+					g_slacker.selected_monitor
+						->selected_client &&
+					g_slacker.selected_monitor
+							->selected_client->tags &
+						1 << i,
+				urgent & 1 << i);
+		}
+
+		x += w;
+	}
+
+	// Draw the layout symbol
+	w = TEXTW(monitor->layout_symbol);
+	drw_setscheme(g_slacker.draw,
+		      g_slacker.scheme[SlackerColorscheme_Norm]);
+	x = drw_text(g_slacker.draw, x, 0, w, g_slacker.bar_height,
+		     (g_slacker.left_right_padding_sum / 2),
+		     monitor->layout_symbol, 0);
+
+	if ((w = monitor->ww - text_width - x) > g_slacker.bar_height) {
+		if (monitor->selected_client) {
+			enum SlackerColorscheme colorscheme =
+				(monitor == g_slacker.selected_monitor ?
+					 SlackerColorscheme_Sel :
+					 SlackerColorscheme_Norm);
+
+			drw_setscheme(g_slacker.draw,
+				      g_slacker.scheme[colorscheme]);
+
+			drw_text(g_slacker.draw, x, 0, w, g_slacker.bar_height,
+				 (g_slacker.left_right_padding_sum / 2),
+				 monitor->selected_client->name, 0);
+
+			if (monitor->selected_client->isfloating) {
+				drw_rect(g_slacker.draw, x + boxs, boxs, boxw,
+					 boxw,
+					 monitor->selected_client->isfixed, 0);
+			}
+
+		} else {
+			drw_setscheme(
+				g_slacker.draw,
+				g_slacker.scheme[SlackerColorscheme_Norm]);
+
+			drw_rect(g_slacker.draw, x, 0, w, g_slacker.bar_height,
+				 1, 1);
+		}
+	}
+
+	drw_map(g_slacker.draw, monitor->barwin, 0, 0, monitor->ww,
+		g_slacker.bar_height);
+}
+
+/// @brief Draws the bar for all monitors.
+void Slacker__drawbars(void)
+{
+	Monitor *monitor;
+
+	for (monitor = g_slacker.monitor_list; monitor;
+	     monitor = monitor->next) {
+		Slacker__drawbar(monitor);
+	}
 }
 
 void event_enternotify(XEvent *event)
 {
-	Client *c;
-	Monitor *m;
+	Client *temp_client = NULL;
+	Monitor *temp_monitor = NULL;
 	XCrossingEvent *ev = &event->xcrossing;
 
 	if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) &&
-	    ev->window != root)
+	    ev->window != g_slacker.root) {
 		return;
-	c = wintoclient(ev->window);
-	m = c ? c->mon : wintomon(ev->window);
-	if (m != selmon) {
-		unfocus(selmon->sel, 1);
-		selmon = m;
-	} else if (!c || c == selmon->sel)
+	}
+
+	temp_client = Slacker__win_to_client(ev->window);
+	temp_monitor = temp_client ? temp_client->mon :
+				     Slacker__wintomon(ev->window);
+
+	if (temp_monitor != g_slacker.selected_monitor) {
+		Slacker__unfocus(g_slacker.selected_monitor->selected_client,
+				 1);
+		g_slacker.selected_monitor = temp_monitor;
+	} else if (!temp_client ||
+		   temp_client == g_slacker.selected_monitor->selected_client) {
 		return;
-	focus(c);
+	}
+	Slacker__focus(temp_client);
 }
 
 void event_expose(XEvent *event)
 {
-	Monitor *m;
+	Monitor *monitor;
 	XExposeEvent *ev = &event->xexpose;
 
-	if (ev->count == 0 && (m = wintomon(ev->window)))
-		drawbar(m);
-}
-
-void focus(Client *c)
-{
-	if (!c || !ISVISIBLE(c))
-		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext)
-			;
-	if (selmon->sel && selmon->sel != c)
-		unfocus(selmon->sel, 0);
-	if (c) {
-		if (c->mon != selmon)
-			selmon = c->mon;
-		if (c->isurgent)
-			seturgent(c, 0);
-		detachstack(c);
-		attachstack(c);
-		grabbuttons(c, 1);
-		XSetWindowBorder(
-			dpy, c->win,
-			scheme[SlackerColorscheme_Sel][ColBorder].pixel);
-		setfocus(c);
-	} else {
-		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-		XDeleteProperty(dpy, root,
-				netatom[SlackerEWMHAtom_NetActiveWindow]);
+	if (ev->count == 0 && (monitor = Slacker__wintomon(ev->window))) {
+		Slacker__drawbar(monitor);
 	}
-	selmon->sel = c;
-	drawbars();
 }
 
-/* there are some broken focus acquiring clients needing extra handling */
+/// @brief Focuses on a client
+void Slacker__focus(Client *client)
+{
+	if (!client || !ISVISIBLE(client))
+		for (client = g_slacker.selected_monitor->client_stack;
+		     client && !ISVISIBLE(client);
+		     client = client->stack_next) {
+			;
+		}
+
+	if (g_slacker.selected_monitor->selected_client &&
+	    g_slacker.selected_monitor->selected_client != client) {
+		Slacker__unfocus(g_slacker.selected_monitor->selected_client,
+				 0);
+	}
+
+	if (client) {
+		if (client->mon != g_slacker.selected_monitor) {
+			g_slacker.selected_monitor = client->mon;
+		}
+
+		if (client->isurgent) {
+			Slacker__seturgent(client, 0);
+		}
+
+		Client__detach_from_stack(client);
+		Client__attach_to_stack(client);
+		Slacker__grab_buttons(client, true);
+
+		XSetWindowBorder(
+			g_slacker.display, client->win,
+			g_slacker.scheme[SlackerColorscheme_Sel][ColBorder]
+				.pixel);
+
+		Slacker__setfocus(client);
+	} else {
+		XSetInputFocus(g_slacker.display, g_slacker.root,
+			       RevertToPointerRoot, CurrentTime);
+
+		XDeleteProperty(
+			g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetActiveWindow]);
+	}
+
+	g_slacker.selected_monitor->selected_client = client;
+	Slacker__drawbars();
+}
+
 void event_focusin(XEvent *event)
 {
 	XFocusChangeEvent *ev = &event->xfocus;
 
-	if (selmon->sel && ev->window != selmon->sel->win)
-		setfocus(selmon->sel);
+	if (g_slacker.selected_monitor->selected_client &&
+	    ev->window != g_slacker.selected_monitor->selected_client->win) {
+		Slacker__setfocus(g_slacker.selected_monitor->selected_client);
+	}
 }
 
-void focusmon(const Arg *arg)
+/// @brief When a user changed to a different monitor, this function is called.
+///
+/// @details  TODO:
+void Slacker__focus_monitor(const Arg *arg)
 {
-	Monitor *m;
+	Monitor *temp_monitor;
 
-	if (!mons->next)
+	if (!g_slacker.monitor_list->next) {
 		return;
-	if ((m = dirtomon(arg->i)) == selmon)
+	}
+
+	if ((temp_monitor = Slacker__dir_to_monitor(arg->i)) ==
+	    g_slacker.selected_monitor) {
 		return;
-	unfocus(selmon->sel, 0);
-	selmon = m;
-	focus(NULL);
+	}
+
+	Slacker__unfocus(g_slacker.selected_monitor->selected_client, 0);
+	g_slacker.selected_monitor = temp_monitor;
+	Slacker__focus(NULL);
 }
 
-void focusstack(const Arg *arg)
+/// @brief Focuses on the next client in the stack.
+/// TODO: Refactor, this function should be a Client function
+void Slacker__focus_stack(const Arg *arg)
 {
-	Client *c = NULL, *i;
+	Client *temp_client = NULL;
 
-	if (!selmon->sel ||
-	    (selmon->sel->isfullscreen && GLOBAL_LOCK_FULLSCREEN))
+	// If the selected client is null, or the is fullscreen and the global lock is set, return.
+	if (!g_slacker.selected_monitor->selected_client ||
+	    (g_slacker.selected_monitor->selected_client->isfullscreen &&
+	     GLOBAL_LOCK_FULLSCREEN)) {
 		return;
+	}
+
 	if (arg->i > 0) {
-		for (c = selmon->sel->next; c && !ISVISIBLE(c); c = c->next)
+		for (temp_client =
+			     g_slacker.selected_monitor->selected_client->next;
+		     temp_client && !ISVISIBLE(temp_client);
+		     temp_client = temp_client->next) {
 			;
-		if (!c)
-			for (c = selmon->clients; c && !ISVISIBLE(c);
-			     c = c->next)
+		}
+
+		if (!temp_client) {
+			for (temp_client =
+				     g_slacker.selected_monitor->client_list;
+			     temp_client && !ISVISIBLE(temp_client);
+			     temp_client = temp_client->next) {
 				;
+			}
+		}
 	} else {
-		for (i = selmon->clients; i != selmon->sel; i = i->next)
-			if (ISVISIBLE(i))
-				c = i;
-		if (!c)
-			for (; i; i = i->next)
-				if (ISVISIBLE(i))
-					c = i;
+		Client *iter = NULL;
+		for (iter = g_slacker.selected_monitor->client_list;
+		     iter != g_slacker.selected_monitor->selected_client;
+		     iter = iter->next) {
+			if (ISVISIBLE(iter)) {
+				temp_client = iter;
+			}
+		}
+
+		if (!temp_client) {
+			for (; iter; iter = iter->next) {
+				if (ISVISIBLE(iter)) {
+					temp_client = iter;
+				}
+			}
+		}
 	}
-	if (c) {
-		focus(c);
-		restack(selmon);
+	if (temp_client) {
+		Slacker__focus(temp_client);
+		Slacker__restack(g_slacker.selected_monitor);
 	}
 }
 
-Atom getatomprop(Client *c, Atom prop)
+/// @brief Get the atom property for a given client.
+///
+/// @details TODO: This should be a Client__ function
+/// @param `client` The client to get the atom prop for
+Atom Slacker__get_atom_prop(Client *client, Atom prop)
 {
-	int di;
-	unsigned long dl;
+	int32_t di;
+	uint64_t dl;
 	unsigned char *p = NULL;
 	Atom da, atom = None;
 
-	if (XGetWindowProperty(dpy, c->win, prop, 0L, sizeof atom, False,
-			       XA_ATOM, &da, &di, &dl, &dl, &p) == Success &&
+	if (XGetWindowProperty(g_slacker.display, client->win, prop, 0L,
+			       sizeof(atom), False, XA_ATOM, &da, &di, &dl, &dl,
+			       &p) == Success &&
 	    p) {
 		atom = *(Atom *)p;
 		XFree(p);
@@ -860,218 +1138,319 @@ Atom getatomprop(Client *c, Atom prop)
 	return atom;
 }
 
-int getrootptr(int *x, int *y)
+/// @brief Gets the pointer coordinates relative to the root window's origin.
+///
+/// @param `root_x_return` Pointer to the root x coordinate
+/// @param `root_y_return` Pointer to the root y coordinate
+///
+/// @return BadWindow if the window is invalid
+int32_t Slacker__getrootptr(int *root_x_return, int *root_y_return)
 {
-	int di;
-	unsigned int dui;
-	Window dummy;
+	// Dummy variables that we don't care about.
+	int32_t win_return_dummy;
+	uint32_t mask_return_dummy;
+	Window root_return_dummy, child_return_dummy;
 
-	return XQueryPointer(dpy, root, &dummy, &dummy, x, y, &di, &di, &dui);
+	return XQueryPointer(g_slacker.display, g_slacker.root,
+			     &root_return_dummy, &child_return_dummy,
+			     root_x_return, root_y_return, &win_return_dummy,
+			     &win_return_dummy, &mask_return_dummy);
 }
 
-long getstate(Window w)
+/// @brief Gets the state of a given window and frees it via Xlib.
+///
+/// @param `wid` The window to get the state of and free
+int64_t Slacker__getstate(Window wid)
 {
-	int format;
-	long result = -1;
+	int32_t format = 0;
+	int64_t result = -1;
 	unsigned char *p = NULL;
-	unsigned long n, extra;
+	uint64_t n = 0;
+	uint64_t extra = 0;
 	Atom real;
 
-	if (XGetWindowProperty(dpy, w, wmatom[SlackerDefaultAtom_WMState], 0L,
-			       2L, False, wmatom[SlackerDefaultAtom_WMState],
-			       &real, &format, &n, &extra,
-			       (unsigned char **)&p) != Success)
+	if (XGetWindowProperty(
+		    g_slacker.display, wid,
+		    g_slacker.wmatom[SlackerDefaultAtom_WMState], 0L, 2L, False,
+		    g_slacker.wmatom[SlackerDefaultAtom_WMState], &real,
+		    &format, &n, &extra, (unsigned char **)&p) != Success) {
 		return -1;
-	if (n != 0)
+	}
+	if (n != 0) {
 		result = *p;
+	}
 	XFree(p);
 	return result;
 }
 
-int gettextprop(Window w, Atom atom, char *text, unsigned int size)
+/// @brief Get the text property for a given window id.
+/// @details Takes a window id instead of a Client, because it is used for the root window as well.
+///
+/// @param `w_id` The window id to get the text prop for
+/// @param `atom` The atom to get the text prop for
+/// @param `text` Stores the text property name to be used
+/// @param `size` The size of the text property name
+///
+/// @returns 1 if the text property was found, 0 otherwise
+int32_t Slacker__get_text_prop(Window w_id, Atom atom, char *text,
+			       uint32_t size)
 {
 	char **list = NULL;
-	int n;
+	int32_t n = 0;
 	XTextProperty name;
 
-	if (!text || size == 0)
+	if (!text || size == 0) {
 		return 0;
+	}
 	text[0] = '\0';
-	if (!XGetTextProperty(dpy, w, &name, atom) || !name.nitems)
+
+	if (!XGetTextProperty(g_slacker.display, w_id, &name, atom) ||
+	    !name.nitems) {
 		return 0;
+	}
+
 	if (name.encoding == XA_STRING) {
 		strncpy(text, (char *)name.value, size - 1);
-	} else if (XmbTextPropertyToTextList(dpy, &name, &list, &n) >=
-			   Success &&
+	} else if (XmbTextPropertyToTextList(g_slacker.display, &name, &list,
+					     &n) >= Success &&
 		   n > 0 && *list) {
 		strncpy(text, *list, size - 1);
 		XFreeStringList(list);
 	}
+
 	text[size - 1] = '\0';
 	XFree(name.value);
 	return 1;
 }
 
-void grabbuttons(Client *c, int focused)
+/// @brief Checks to see if any of the supported button masks were pressed
+/// on a client window.
+///
+/// @param `client` The client to check for button presses on
+/// @param `focused` Whether or not the client should be focused
+void Slacker__grab_buttons(Client *client, bool focused)
 {
-	updatenumlockmask();
+	Slacker__update_numlock_mask();
 	{
-		unsigned int i, j;
-		unsigned int modifiers[] = { 0, LockMask, numlockmask,
-					     numlockmask | LockMask };
-		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-		if (!focused)
-			XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
-				    BUTTONMASK, GrabModeSync, GrabModeSync,
-				    None, None);
-		for (i = 0; i < LENGTH(GLOBAL_CLICKABLE_BUTTONS); i++)
+		// Clear all buttons
+		XUngrabButton(g_slacker.display, AnyButton, AnyModifier,
+			      client->win);
+
+		if (!focused) {
+			XGrabButton(g_slacker.display, AnyButton, AnyModifier,
+				    client->win, False, BUTTONMASK,
+				    GrabModeSync, GrabModeSync, None, None);
+		}
+
+		uint32_t modifiers[] = { 0, LockMask, g_slacker.numlockmask,
+					 (g_slacker.numlockmask | LockMask) };
+
+		for (uint32_t i = 0; i < LENGTH(GLOBAL_CLICKABLE_BUTTONS);
+		     ++i) {
+			// if the button is a client window button, grab it
 			if (GLOBAL_CLICKABLE_BUTTONS[i].click ==
-			    SlackerClick_ClientWin)
-				for (j = 0; j < LENGTH(modifiers); j++)
-					XGrabButton(dpy,
+			    SlackerClick_ClientWin) {
+				for (uint32_t j = 0; j < LENGTH(modifiers); ++j)
+					XGrabButton(g_slacker.display,
 						    GLOBAL_CLICKABLE_BUTTONS[i]
 							    .button,
 						    GLOBAL_CLICKABLE_BUTTONS[i]
 								    .mask |
 							    modifiers[j],
-						    c->win, False, BUTTONMASK,
-						    GrabModeAsync, GrabModeSync,
-						    None, None);
+						    client->win, False,
+						    BUTTONMASK, GrabModeAsync,
+						    GrabModeSync, None, None);
+			}
+		}
 	}
 }
 
-void grabkeys(void)
+/// @brief Sets up all the custom key bindings defined in GLOBAL_KEYBINDINGS
+///
+/// @details This function is called once at startup, and again on mappping notify events.
+void Slacker__grab_keys(void)
 {
-	updatenumlockmask();
+	Slacker__update_numlock_mask();
 	{
-		unsigned int i, j, k;
-		unsigned int modifiers[] = { 0, LockMask, numlockmask,
-					     numlockmask | LockMask };
-		int start, end, skip;
-		KeySym *syms;
+		uint32_t modifiers[] = { 0, LockMask, g_slacker.numlockmask,
+					 g_slacker.numlockmask | LockMask };
 
-		XUngrabKey(dpy, AnyKey, AnyModifier, root);
-		XDisplayKeycodes(dpy, &start, &end);
-		syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
-		if (!syms)
+		int32_t start = 0;
+		int32_t end = 0;
+		int32_t skip = 0;
+
+		XUngrabKey(g_slacker.display, AnyKey, AnyModifier,
+			   g_slacker.root);
+		XDisplayKeycodes(g_slacker.display, &start, &end);
+		KeySym *syms = XGetKeyboardMapping(g_slacker.display, start,
+						   (end - (start + 1)), &skip);
+		if (!syms) {
 			return;
-		for (k = start; k <= end; k++)
-			for (i = 0; i < LENGTH(GLOBAL_KEYBINDINGS); i++)
-				/* skip modifier codes, we do that ourselves */
+		}
+
+		for (uint32_t k = start; k <= end; ++k) {
+			for (uint32_t i = 0; i < LENGTH(GLOBAL_KEYBINDINGS);
+			     ++i)
+				// Skip modifier codes, we do that ourselves
 				if (GLOBAL_KEYBINDINGS[i].keysym ==
 				    syms[(k - start) * skip])
-					for (j = 0; j < LENGTH(modifiers); j++)
-						XGrabKey(dpy, k,
+					for (uint32_t j = 0;
+					     j < LENGTH(modifiers); ++j) {
+						XGrabKey(g_slacker.display, k,
 							 GLOBAL_KEYBINDINGS[i]
 									 .mod |
 								 modifiers[j],
-							 root, True,
+							 g_slacker.root, True,
 							 GrabModeAsync,
 							 GrabModeAsync);
+					}
+		}
 		XFree(syms);
 	}
 }
 
-void incnmaster(const Arg *arg)
+/// @brief Increments master window in the stacker area by (+ or 1 n)
+void Slacker__increment_n_master(const Arg *arg)
 {
-	selmon->nmaster = MAX(selmon->nmaster + arg->i, 0);
-	arrange(selmon);
+	Monitor *active = g_slacker.selected_monitor;
+	active->nmaster = MAX(active->nmaster + arg->i, 0);
+	Slacker__arrange_monitors(active);
 }
 
 void event_keypress(XEvent *event)
 {
-	unsigned int i;
-	KeySym keysym;
-	XKeyEvent *ev;
+	XKeyEvent *ev = &event->xkey;
+	KeySym keysym =
+		XKeycodeToKeysym(g_slacker.display, (KeyCode)ev->keycode, 0);
 
-	ev = &event->xkey;
-	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
-	for (i = 0; i < LENGTH(GLOBAL_KEYBINDINGS); i++)
+	for (uint32_t i = 0; i < LENGTH(GLOBAL_KEYBINDINGS); i++) {
 		if (keysym == GLOBAL_KEYBINDINGS[i].keysym &&
 		    CLEANMASK(GLOBAL_KEYBINDINGS[i].mod) ==
 			    CLEANMASK(ev->state) &&
-		    GLOBAL_KEYBINDINGS[i].func)
-			GLOBAL_KEYBINDINGS[i].func(
+		    GLOBAL_KEYBINDINGS[i].keymap_callback) {
+			GLOBAL_KEYBINDINGS[i].keymap_callback(
 				&(GLOBAL_KEYBINDINGS[i].arg));
-}
-
-void killclient(const Arg *arg)
-{
-	if (!selmon->sel)
-		return;
-	if (!sendevent(selmon->sel, wmatom[SlackerDefaultAtom_WMDelete])) {
-		XGrabServer(dpy);
-		XSetErrorHandler(xerrordummy);
-		XSetCloseDownMode(dpy, DestroyAll);
-		XKillClient(dpy, selmon->sel->win);
-		XSync(dpy, False);
-		XSetErrorHandler(xerror);
-		XUngrabServer(dpy);
+		}
 	}
 }
 
-void manage(Window w, XWindowAttributes *wa)
+/// @brief Kills the currently selected client.
+void Slacker__kill_client(const Arg *arg)
 {
-	Client *c, *t = NULL;
+	if (!g_slacker.selected_monitor->selected_client) {
+		return;
+	}
+
+	if (!Slacker__send_event(
+		    g_slacker.selected_monitor->selected_client,
+		    g_slacker.wmatom[SlackerDefaultAtom_WMDelete])) {
+		XGrabServer(g_slacker.display);
+		XSetErrorHandler(xerrordummy);
+		XSetCloseDownMode(g_slacker.display, DestroyAll);
+		XKillClient(g_slacker.display,
+			    g_slacker.selected_monitor->selected_client->win);
+		XSync(g_slacker.display, False);
+		XSetErrorHandler(xerror);
+		XUngrabServer(g_slacker.display);
+	}
+}
+
+/// @brief Creates a new client window and manages it.
+///
+/// @param `w` The window to manage
+/// @param `wa` The window attributes of the window to manage
+void Slacker__manage(Window w_id, XWindowAttributes *wa)
+{
+	fprintf(stdout, "%s\n", __PRETTY_FUNCTION__);
+	Client *new_client = NULL;
+	Client *temp_client = NULL;
 	Window trans = None;
 	XWindowChanges wc;
 
-	c = ecalloc(1, sizeof(Client));
-	c->win = w;
+	new_client = ecalloc(1, sizeof(Client));
+	new_client->win = w_id;
 	/* geometry */
-	c->x = c->oldx = wa->x;
-	c->y = c->oldy = wa->y;
-	c->w = c->oldw = wa->width;
-	c->h = c->oldh = wa->height;
-	c->oldbw = wa->border_width;
+	new_client->x = new_client->oldx = wa->x;
+	new_client->y = new_client->oldy = wa->y;
+	new_client->w = new_client->oldw = wa->width;
+	new_client->h = new_client->oldh = wa->height;
+	new_client->oldbw = wa->border_width;
 
-	updatetitle(c);
-	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
-		c->mon = t->mon;
-		c->tags = t->tags;
+	Slacker__update_client_title(new_client);
+	if (XGetTransientForHint(g_slacker.display, w_id, &trans) &&
+	    (temp_client = Slacker__win_to_client(trans))) {
+		new_client->mon = temp_client->mon;
+		new_client->tags = temp_client->tags;
 	} else {
-		c->mon = selmon;
-		applyrules(c);
+		new_client->mon = g_slacker.selected_monitor;
+		Slacker__applyrules(new_client);
 	}
 
-	if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww)
-		c->x = c->mon->wx + c->mon->ww - WIDTH(c);
-	if (c->y + HEIGHT(c) > c->mon->wy + c->mon->wh)
-		c->y = c->mon->wy + c->mon->wh - HEIGHT(c);
-	c->x = MAX(c->x, c->mon->wx);
-	c->y = MAX(c->y, c->mon->wy);
-	c->bw = GLOBAL_BORDER_PIXEL;
+	if (new_client->x + WIDTH(new_client) >
+	    new_client->mon->wx + new_client->mon->ww) {
+		new_client->x = new_client->mon->wx + new_client->mon->ww -
+				WIDTH(new_client);
+	}
 
-	wc.border_width = c->bw;
-	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-	XSetWindowBorder(dpy, w,
-			 scheme[SlackerColorscheme_Norm][ColBorder].pixel);
-	configure(c); /* propagates border_width, if size doesn't change */
-	updatewindowtype(c);
-	updatesizehints(c);
-	updatewmhints(c);
-	XSelectInput(dpy, w,
+	if (new_client->y + HEIGHT(new_client) >
+	    (new_client->mon->wy + new_client->mon->wh)) {
+		new_client->y = new_client->mon->wy + new_client->mon->wh -
+				HEIGHT(new_client);
+	}
+
+	new_client->x = MAX(new_client->x, new_client->mon->wx);
+	new_client->y = MAX(new_client->y, new_client->mon->wy);
+	new_client->bw = GLOBAL_BORDER_PIXEL;
+
+	wc.border_width = new_client->bw;
+	XConfigureWindow(g_slacker.display, w_id, CWBorderWidth, &wc);
+	XSetWindowBorder(
+		g_slacker.display, w_id,
+		g_slacker.scheme[SlackerColorscheme_Norm][ColBorder].pixel);
+
+	// Propagates border_width, if size doesn't change
+	Client__configure(new_client);
+
+	Slacker__update_window_type(new_client);
+	updatesizehints(new_client);
+	Slacker__update_wmhints(new_client);
+	XSelectInput(g_slacker.display, w_id,
 		     EnterWindowMask | FocusChangeMask | PropertyChangeMask |
 			     StructureNotifyMask);
-	grabbuttons(c, 0);
-	if (!c->isfloating)
-		c->isfloating = c->oldstate = trans != None || c->isfixed;
-	if (c->isfloating)
-		XRaiseWindow(dpy, c->win);
-	attach(c);
-	attachstack(c);
-	XChangeProperty(dpy, root, netatom[SlackerEWMHAtom_NetClientList],
+
+	Slacker__grab_buttons(new_client, false);
+
+	if (!new_client->isfloating) {
+		new_client->isfloating = new_client->oldstate =
+			trans != None || new_client->isfixed;
+	}
+
+	if (new_client->isfloating) {
+		XRaiseWindow(g_slacker.display, new_client->win);
+	}
+
+	Client__attach(new_client);
+	Client__attach_to_stack(new_client);
+	XChangeProperty(g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetClientList],
 			XA_WINDOW, 32, PropModeAppend,
-			(unsigned char *)&(c->win), 1);
-	XMoveResizeWindow(dpy, c->win, c->x + 2 * screen_width, c->y, c->w,
-			  c->h); /* some windows require this */
-	setclientstate(c, NormalState);
-	if (c->mon == selmon)
-		unfocus(selmon->sel, 0);
-	c->mon->sel = c;
-	arrange(c->mon);
-	XMapWindow(dpy, c->win);
-	focus(NULL);
+			(unsigned char *)&(new_client->win), 1);
+
+	XMoveResizeWindow(g_slacker.display, new_client->win,
+			  new_client->x + 2 * g_slacker.screen_width,
+			  new_client->y, new_client->w,
+			  new_client->h); /* some windows require this */
+
+	Slacker__set_client_state(new_client, NormalState);
+	if (new_client->mon == g_slacker.selected_monitor) {
+		Slacker__unfocus(g_slacker.selected_monitor->selected_client,
+				 0);
+	}
+
+	new_client->mon->selected_client = new_client;
+	Slacker__arrange_monitors(new_client->mon);
+	XMapWindow(g_slacker.display, new_client->win);
+	Slacker__focus(NULL);
 }
 
 void event_mappingnotify(XEvent *event)
@@ -1079,8 +1458,9 @@ void event_mappingnotify(XEvent *event)
 	XMappingEvent *ev = &event->xmapping;
 
 	XRefreshKeyboardMapping(ev);
-	if (ev->request == MappingKeyboard)
-		grabkeys();
+	if (ev->request == MappingKeyboard) {
+		Slacker__grab_keys();
+	}
 }
 
 void event_maprequest(XEvent *event)
@@ -1088,25 +1468,41 @@ void event_maprequest(XEvent *event)
 	static XWindowAttributes wa;
 	XMapRequestEvent *ev = &event->xmaprequest;
 
-	if (!XGetWindowAttributes(dpy, ev->window, &wa) || wa.override_redirect)
+	if (!XGetWindowAttributes(g_slacker.display, ev->window, &wa) ||
+	    wa.override_redirect) {
 		return;
-	if (!wintoclient(ev->window))
-		manage(ev->window, &wa);
+	}
+
+	if (!Slacker__win_to_client(ev->window)) {
+		Slacker__manage(ev->window, &wa);
+	}
 }
 
-void monitor_layout_monocle(Monitor *m)
+void Monitor__layout_monocle(Monitor *monitor)
 {
-	unsigned int n = 0;
-	Client *c;
+	uint32_t number_of_clients = 0;
+	Client *temp_client = NULL;
 
-	for (c = m->clients; c; c = c->next)
-		if (ISVISIBLE(c))
-			n++;
-	if (n > 0) /* override layout symbol */
-		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
-	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
-		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw,
-		       0);
+	// collect number of visible clients on this monitor.
+	for (temp_client = monitor->client_list; temp_client;
+	     temp_client = temp_client->next) {
+		if (ISVISIBLE(temp_client)) {
+			number_of_clients++;
+		}
+	}
+
+	// If we have clients, override the layout symbol in the bar.
+	if (number_of_clients > 0) {
+		snprintf(monitor->layout_symbol, sizeof(monitor->layout_symbol),
+			 "[%d]", number_of_clients);
+	}
+
+	for (temp_client = Client__next_tiled(monitor->client_list);
+	     temp_client; temp_client = Client__next_tiled(temp_client->next)) {
+		Client__resize(temp_client, monitor->wx, monitor->wy,
+			       monitor->ww - 2 * temp_client->bw,
+			       monitor->wh - 2 * temp_client->bw, 0);
+	}
 }
 
 void event_motionnotify(XEvent *event)
@@ -1115,40 +1511,64 @@ void event_motionnotify(XEvent *event)
 	Monitor *m;
 	XMotionEvent *ev = &event->xmotion;
 
-	if (ev->window != root)
+	if (ev->window != g_slacker.root) {
 		return;
-	if ((m = recttomon(ev->x_root, ev->y_root, 1, 1)) != mon && mon) {
-		unfocus(selmon->sel, 1);
-		selmon = m;
-		focus(NULL);
+	}
+	if ((m = Slacker__rect_to_monitor(ev->x_root, ev->y_root, 1, 1)) !=
+		    mon &&
+	    mon) {
+		Slacker__unfocus(g_slacker.selected_monitor->selected_client,
+				 1);
+		g_slacker.selected_monitor = m;
+		Slacker__focus(NULL);
 	}
 	mon = m;
 }
 
-void movemouse(const Arg *arg)
+/// @brief Confusing code. I think this function is used to move a window via the mouse.
+///
+/// @details TODO: Refactor this function, it is confusing and hard to read.
+void Slacker__move_with_mouse(const Arg *arg)
 {
-	int x, y, ocx, ocy, nx, ny;
-	Client *c;
-	Monitor *m;
-	XEvent ev;
+	int32_t x = 0;
+	int32_t y = 0;
+	int32_t ocx = 0;
+	int32_t ocy = 0;
+	int32_t nx = 0;
+	int32_t ny = 0;
+	Client *temp_client = 0;
+	Monitor *m = 0;
 	Time lasttime = 0;
+	XEvent ev;
 
-	if (!(c = selmon->sel))
+	// If there is no selected client, return.
+	if (!(temp_client = g_slacker.selected_monitor->selected_client)) {
 		return;
-	if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
+	}
+
+	// No support moving fullscreen windows by mouse
+	if (temp_client->isfullscreen) {
 		return;
-	restack(selmon);
-	ocx = c->x;
-	ocy = c->y;
-	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
-			 GrabModeAsync, None,
-			 cursor[SlackerCursorState_Move]->cursor,
-			 CurrentTime) != GrabSuccess)
+	}
+
+	Slacker__restack(g_slacker.selected_monitor);
+	ocx = temp_client->x;
+	ocy = temp_client->y;
+
+	if (XGrabPointer(g_slacker.display, g_slacker.root, False, MOUSEMASK,
+			 GrabModeAsync, GrabModeAsync, None,
+			 g_slacker.cursor[SlackerCursorState_Move]->cursor,
+			 CurrentTime) != GrabSuccess) {
 		return;
-	if (!getrootptr(&x, &y))
+	}
+
+	// If window is invalid, return.
+	if (!Slacker__getrootptr(&x, &y)) {
 		return;
+	}
+
 	do {
-		XMaskEvent(dpy,
+		XMaskEvent(g_slacker.display,
 			   MOUSEMASK | ExposureMask | SubstructureRedirectMask,
 			   &ev);
 		switch (ev.type) {
@@ -1156,399 +1576,617 @@ void movemouse(const Arg *arg)
 		case Expose:
 		case MapRequest:
 			event_loop(&ev);
-			// handler[ev.type](&ev);
 			break;
 		case MotionNotify:
-			if ((ev.xmotion.time - lasttime) <= (1000 / 60))
+			if ((ev.xmotion.time - lasttime) <= (1000 / 60)) {
 				continue;
+			}
 			lasttime = ev.xmotion.time;
 
 			nx = ocx + (ev.xmotion.x - x);
 			ny = ocy + (ev.xmotion.y - y);
-			if (abs(selmon->wx - nx) < GLOBAL_SNAP_PIXEL)
-				nx = selmon->wx;
-			else if (abs((selmon->wx + selmon->ww) -
-				     (nx + WIDTH(c))) < GLOBAL_SNAP_PIXEL)
-				nx = selmon->wx + selmon->ww - WIDTH(c);
-			if (abs(selmon->wy - ny) < GLOBAL_SNAP_PIXEL)
-				ny = selmon->wy;
-			else if (abs((selmon->wy + selmon->wh) -
-				     (ny + HEIGHT(c))) < GLOBAL_SNAP_PIXEL)
-				ny = selmon->wy + selmon->wh - HEIGHT(c);
-			if (!c->isfloating &&
-			    selmon->lt[selmon->sellt]->arrange &&
-			    (abs(nx - c->x) > GLOBAL_SNAP_PIXEL ||
-			     abs(ny - c->y) > GLOBAL_SNAP_PIXEL))
-				togglefloating(NULL);
-			if (!selmon->lt[selmon->sellt]->arrange ||
-			    c->isfloating)
-				resize(c, nx, ny, c->w, c->h, 1);
+
+			if (abs(g_slacker.selected_monitor->wx - nx) <
+			    GLOBAL_SNAP_PIXEL) {
+				nx = g_slacker.selected_monitor->wx;
+			} else if (abs((g_slacker.selected_monitor->wx +
+					g_slacker.selected_monitor->ww) -
+				       (nx + WIDTH(temp_client))) <
+				   GLOBAL_SNAP_PIXEL) {
+				nx = g_slacker.selected_monitor->wx +
+				     g_slacker.selected_monitor->ww -
+				     WIDTH(temp_client);
+			}
+
+			if (abs(g_slacker.selected_monitor->wy - ny) <
+			    GLOBAL_SNAP_PIXEL) {
+				ny = g_slacker.selected_monitor->wy;
+			} else if (abs((g_slacker.selected_monitor->wy +
+					g_slacker.selected_monitor->wh) -
+				       (ny + HEIGHT(temp_client))) <
+				   GLOBAL_SNAP_PIXEL) {
+				ny = g_slacker.selected_monitor->wy +
+				     g_slacker.selected_monitor->wh -
+				     HEIGHT(temp_client);
+			}
+
+			if (!temp_client->isfloating &&
+			    g_slacker.selected_monitor
+				    ->layouts[g_slacker.selected_monitor
+						      ->selected_layout]
+				    ->layout_arrange_callback &&
+			    (abs(nx - temp_client->x) > GLOBAL_SNAP_PIXEL ||
+			     abs(ny - temp_client->y) > GLOBAL_SNAP_PIXEL)) {
+				Slacker__togglefloating(NULL);
+			}
+
+			if (!g_slacker.selected_monitor
+				     ->layouts[g_slacker.selected_monitor
+						       ->selected_layout]
+				     ->layout_arrange_callback ||
+			    temp_client->isfloating) {
+				Client__resize(temp_client, nx, ny,
+					       temp_client->w, temp_client->h,
+					       1);
+			}
 			break;
 		}
 	} while (ev.type != ButtonRelease);
-	XUngrabPointer(dpy, CurrentTime);
-	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
-		sendmon(c, m);
-		selmon = m;
-		focus(NULL);
+
+	XUngrabPointer(g_slacker.display, CurrentTime);
+
+	if ((m = Slacker__rect_to_monitor(temp_client->x, temp_client->y,
+					  temp_client->w, temp_client->h)) !=
+	    g_slacker.selected_monitor) {
+		Client__send_to_monitor(temp_client, m);
+		g_slacker.selected_monitor = m;
+		Slacker__focus(NULL);
 	}
 }
 
-Client *nexttiled(Client *c)
+/// @brief Get the next tiled and visible client in the client linked list.
+Client *Client__next_tiled(Client *client)
 {
-	for (; c && (c->isfloating || !ISVISIBLE(c)); c = c->next)
+	for (; client && (client->isfloating || !ISVISIBLE(client));
+	     client = client->next) {
 		;
-	return c;
+	}
+	return client;
 }
 
-void pop(Client *c)
+/// @brief Removes a client from the client list.
+void Client__pop(Client *client)
 {
-	detach(c);
-	attach(c);
-	focus(c);
-	arrange(c->mon);
+	Client__detach(client);
+	Client__attach(client);
+	Slacker__focus(client);
+	Slacker__arrange_monitors(client->mon);
 }
 
 void event_propertynotify(XEvent *event)
 {
-	Client *c;
+	Client *client = NULL;
 	Window trans;
 	XPropertyEvent *ev = &event->xproperty;
 
-	if ((ev->window == root) && (ev->atom == XA_WM_NAME))
-		updatestatus();
-	else if (ev->state == PropertyDelete)
-		return; /* ignore */
-	else if ((c = wintoclient(ev->window))) {
+	if ((ev->window == g_slacker.root) && (ev->atom == XA_WM_NAME)) {
+		Slacker__update_status();
+	} else if (ev->state == PropertyDelete) {
+		// TODO: Move this else if to an if at the top of the file.
+		return;
+	} else if ((client = Slacker__win_to_client(ev->window))) {
 		switch (ev->atom) {
-		default:
-			break;
 		case XA_WM_TRANSIENT_FOR:
-			if (!c->isfloating &&
-			    (XGetTransientForHint(dpy, c->win, &trans)) &&
-			    (c->isfloating = (wintoclient(trans)) != NULL))
-				arrange(c->mon);
+			if (!client->isfloating &&
+			    (XGetTransientForHint(g_slacker.display,
+						  client->win, &trans)) &&
+			    (client->isfloating =
+				     (Slacker__win_to_client(trans)) != NULL)) {
+				Slacker__arrange_monitors(client->mon);
+			}
 			break;
 		case XA_WM_NORMAL_HINTS:
-			c->hintsvalid = 0;
+			client->hintsvalid = 0;
 			break;
 		case XA_WM_HINTS:
-			updatewmhints(c);
-			drawbars();
+			Slacker__update_wmhints(client);
+			Slacker__drawbars();
+			break;
+		default:
 			break;
 		}
+
 		if (ev->atom == XA_WM_NAME ||
-		    ev->atom == netatom[SlackerEWMHAtom_NetWMName]) {
-			updatetitle(c);
-			if (c == c->mon->sel)
-				drawbar(c->mon);
+		    ev->atom == g_slacker.netatom[SlackerEWMHAtom_NetWMName]) {
+			Slacker__update_client_title(client);
+			if (client == client->mon->selected_client) {
+				Slacker__drawbar(client->mon);
+			}
 		}
-		if (ev->atom == netatom[SlackerEWMHAtom_NetWMWindowType])
-			updatewindowtype(c);
+
+		if (ev->atom ==
+		    g_slacker.netatom[SlackerEWMHAtom_NetWMWindowType]) {
+			Slacker__update_window_type(client);
+		}
 	}
 }
 
-void quit(const Arg *arg)
+/// @brief Shutdown the window manager
+void Slacker__quit(const Arg *arg)
 {
-	is_running = false;
+	g_slacker.is_running = false;
 }
 
-Monitor *recttomon(int x, int y, int w, int h)
+/// @brief Transforms coordinates, width and height to the monitor they are on.
+///
+///	TODO: This can be refactored to be a Monitor__ function
+/// @param `x` The x coordinate
+/// @param `y` The y coordinate
+/// @param `w` The width
+/// @param `h` The height
+///
+/// @return The monitor the coordinates, width and height are on.
+Monitor *Slacker__rect_to_monitor(int x, int y, int w, int h)
 {
-	Monitor *m, *r = selmon;
-	int a, area = 0;
+	Monitor *m, *r = g_slacker.selected_monitor;
+	int32_t a, area = 0;
 
-	for (m = mons; m; m = m->next)
+	for (m = g_slacker.monitor_list; m; m = m->next) {
 		if ((a = INTERSECT(x, y, w, h, m)) > area) {
 			area = a;
 			r = m;
 		}
+	}
 	return r;
 }
 
-void resize(Client *c, int x, int y, int w, int h, int interact)
+/// @brief Applies size hints to a given client.
+void Client__resize(Client *client, int x, int y, int w, int h, int interact)
 {
-	if (applysizehints(c, &x, &y, &w, &h, interact)) {
-		resizeclient(c, x, y, w, h);
+	if (Slacker__applysizehints(client, &x, &y, &w, &h, interact)) {
+		Slacker__resize_client(client, x, y, w, h);
 	}
 }
 
-void resizeclient(Client *c, int x, int y, int w, int h)
+/// @brief Resizes a client with the given dimensions.
+///
+/// @param `client` The client to resize
+/// @param `x` The x coordinate
+/// @param `y` The y coordinate
+/// @param `w` The width
+/// @param `h` The height
+void Slacker__resize_client(Client *client, int x, int y, int w, int h)
 {
 	XWindowChanges wc;
 
-	c->oldx = c->x;
-	c->x = wc.x = x;
-	c->oldy = c->y;
-	c->y = wc.y = y;
-	c->oldw = c->w;
-	c->w = wc.width = w;
-	c->oldh = c->h;
-	c->h = wc.height = h;
-	wc.border_width = c->bw;
-	XConfigureWindow(dpy, c->win,
+	client->oldx = client->x;
+	client->x = wc.x = x;
+	client->oldy = client->y;
+	client->y = wc.y = y;
+	client->oldw = client->w;
+	client->w = wc.width = w;
+	client->oldh = client->h;
+	client->h = wc.height = h;
+	wc.border_width = client->bw;
+	XConfigureWindow(g_slacker.display, client->win,
 			 CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
-	configure(c);
-	XSync(dpy, False);
+	Client__configure(client);
+	XSync(g_slacker.display, False);
 }
 
-void resizemouse(const Arg *arg)
+/// @brief Adds support for resizing a client with the mouse.
+///
+/// TODO: Refactor, this function
+/// @details Does not support resizing fullscreen windows, because this is a tiling window manager.
+///
+/// @param `arg` The argument to pass to the function
+void Slacker__resize_client_with_mouse(const Arg *arg)
 {
-	int ocx, ocy, nw, nh;
-	Client *c;
-	Monitor *m;
+	int32_t ocx = 0;
+	int32_t ocy = 0;
+	int32_t nw = 0;
+	int32_t nh = 0;
+	Client *temp_client = NULL;
+	Monitor *temp_monitor = NULL;
 	XEvent ev;
 	Time lasttime = 0;
 
-	if (!(c = selmon->sel))
+	// If there is no selected client on the selected monitor, return.
+	if (!(temp_client = g_slacker.selected_monitor->selected_client)) {
 		return;
-	if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
+	}
+
+	// No support for resizing fullscreen windows by mouse
+	if (temp_client->isfullscreen) {
 		return;
-	restack(selmon);
-	ocx = c->x;
-	ocy = c->y;
-	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
-			 GrabModeAsync, None,
-			 cursor[SlackerCursorState_Resize]->cursor,
-			 CurrentTime) != GrabSuccess)
+	}
+
+	Slacker__restack(g_slacker.selected_monitor);
+	ocx = temp_client->x;
+	ocy = temp_client->y;
+
+	if (XGrabPointer(g_slacker.display, g_slacker.root, False, MOUSEMASK,
+			 GrabModeAsync, GrabModeAsync, None,
+			 g_slacker.cursor[SlackerCursorState_Resize]->cursor,
+			 CurrentTime) != GrabSuccess) {
 		return;
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1,
-		     c->h + c->bw - 1);
+	}
+
+	XWarpPointer(g_slacker.display, None, temp_client->win, 0, 0, 0, 0,
+		     temp_client->w + temp_client->bw - 1,
+		     temp_client->h + temp_client->bw - 1);
 	do {
-		XMaskEvent(dpy,
+		XMaskEvent(g_slacker.display,
 			   MOUSEMASK | ExposureMask | SubstructureRedirectMask,
 			   &ev);
+
 		switch (ev.type) {
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
 			event_loop(&ev);
-			// handler[ev.type](&ev);
 			break;
 		case MotionNotify:
-			if ((ev.xmotion.time - lasttime) <= (1000 / 60))
+			if ((ev.xmotion.time - lasttime) <= (1000 / 60)) {
 				continue;
+			}
 			lasttime = ev.xmotion.time;
 
-			nw = MAX(ev.xmotion.x - ocx - 2 * c->bw + 1, 1);
-			nh = MAX(ev.xmotion.y - ocy - 2 * c->bw + 1, 1);
-			if (c->mon->wx + nw >= selmon->wx &&
-			    c->mon->wx + nw <= selmon->wx + selmon->ww &&
-			    c->mon->wy + nh >= selmon->wy &&
-			    c->mon->wy + nh <= selmon->wy + selmon->wh) {
-				if (!c->isfloating &&
-				    selmon->lt[selmon->sellt]->arrange &&
-				    (abs(nw - c->w) > GLOBAL_SNAP_PIXEL ||
-				     abs(nh - c->h) > GLOBAL_SNAP_PIXEL))
-					togglefloating(NULL);
+			nw = MAX((ev.xmotion.x - ocx - 2 * temp_client->bw + 1),
+				 1);
+			nh = MAX((ev.xmotion.y - ocy - 2 * temp_client->bw + 1),
+				 1);
+
+			if (temp_client->mon->wx + nw >=
+				    g_slacker.selected_monitor->wx &&
+			    temp_client->mon->wx + nw <=
+				    g_slacker.selected_monitor->wx +
+					    g_slacker.selected_monitor->ww &&
+			    temp_client->mon->wy + nh >=
+				    g_slacker.selected_monitor->wy &&
+			    temp_client->mon->wy + nh <=
+				    g_slacker.selected_monitor->wy +
+					    g_slacker.selected_monitor->wh) {
+				if (!temp_client->isfloating &&
+				    g_slacker.selected_monitor
+					    ->layouts[g_slacker
+							      .selected_monitor
+							      ->selected_layout]
+					    ->layout_arrange_callback &&
+				    (abs(nw - temp_client->w) >
+					     GLOBAL_SNAP_PIXEL ||
+				     abs(nh - temp_client->h) >
+					     GLOBAL_SNAP_PIXEL))
+					Slacker__togglefloating(NULL);
 			}
-			if (!selmon->lt[selmon->sellt]->arrange ||
-			    c->isfloating)
-				resize(c, c->x, c->y, nw, nh, 1);
+
+			if (!g_slacker.selected_monitor
+				     ->layouts[g_slacker.selected_monitor
+						       ->selected_layout]
+				     ->layout_arrange_callback ||
+			    temp_client->isfloating) {
+				Client__resize(temp_client, temp_client->x,
+					       temp_client->y, nw, nh, 1);
+			}
 			break;
 		}
 	} while (ev.type != ButtonRelease);
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1,
-		     c->h + c->bw - 1);
-	XUngrabPointer(dpy, CurrentTime);
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev))
+
+	XWarpPointer(g_slacker.display, None, temp_client->win, 0, 0, 0, 0,
+		     temp_client->w + (temp_client->bw - 1),
+		     temp_client->h + (temp_client->bw - 1));
+
+	XUngrabPointer(g_slacker.display, CurrentTime);
+
+	while (XCheckMaskEvent(g_slacker.display, EnterWindowMask, &ev)) {
 		;
-	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
-		sendmon(c, m);
-		selmon = m;
-		focus(NULL);
+	}
+
+	if ((temp_monitor = Slacker__rect_to_monitor(
+		     temp_client->x, temp_client->y, temp_client->w,
+		     temp_client->h)) != g_slacker.selected_monitor) {
+		Client__send_to_monitor(temp_client, temp_monitor);
+		g_slacker.selected_monitor = temp_monitor;
+		Slacker__focus(NULL);
 	}
 }
 
-void restack(Monitor *m)
+/// @brief Restacks the client windows on a given monitor according to the layout.
+///
+/// @details Likely called on a layout change
+///
+/// @param `monitor` The monitor to restack
+void Slacker__restack(Monitor *monitor)
 {
-	Client *c;
+	Client *temp_client = NULL;
 	XEvent ev;
 	XWindowChanges wc;
 
-	drawbar(m);
-	if (!m->sel)
+	Slacker__drawbar(monitor);
+	if (!monitor->selected_client) {
 		return;
-	if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
-		XRaiseWindow(dpy, m->sel->win);
-	if (m->lt[m->sellt]->arrange) {
-		wc.stack_mode = Below;
-		wc.sibling = m->barwin;
-		for (c = m->stack; c; c = c->snext)
-			if (!c->isfloating && ISVISIBLE(c)) {
-				XConfigureWindow(dpy, c->win,
-						 CWSibling | CWStackMode, &wc);
-				wc.sibling = c->win;
-			}
 	}
-	XSync(dpy, False);
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev))
+
+	// if the selected client is floating, and the arrange callback is not null, raise the window.
+	if (monitor->selected_client->isfloating ||
+	    !monitor->layouts[monitor->selected_layout]
+		     ->layout_arrange_callback) {
+		XRaiseWindow(g_slacker.display, monitor->selected_client->win);
+	}
+
+	// if the layout out callback function is not null, stack the windows
+	if (monitor->layouts[monitor->selected_layout]->layout_arrange_callback) {
+		wc.stack_mode = Below;
+		wc.sibling = monitor->barwin;
+		for (temp_client = monitor->client_stack; temp_client;
+		     temp_client = temp_client->stack_next) {
+			if (!temp_client->isfloating &&
+			    ISVISIBLE(temp_client)) {
+				XConfigureWindow(g_slacker.display,
+						 temp_client->win,
+						 CWSibling | CWStackMode, &wc);
+				wc.sibling = temp_client->win;
+			}
+		}
+	}
+
+	XSync(g_slacker.display, false);
+	while (XCheckMaskEvent(g_slacker.display, EnterWindowMask, &ev)) {
 		;
+	}
 }
 
-void run(void)
+/// @brief Runs the main event loop.
+///
+/// @details This function is called after the window manager has been initialized
+/// and is responsible for handling all X events and running the window manager.
+void Slacker__run(void)
 {
 	XEvent ev;
-	XSync(dpy, False);
-	/* main event loop */
-	while (is_running && !XNextEvent(dpy, &ev)) {
+	XSync(g_slacker.display, False);
+	while (g_slacker.is_running && !XNextEvent(g_slacker.display, &ev)) {
 		event_loop(&ev);
 	}
 }
 
-void scan(void)
+/// @brief Remove all child and transient windows from the window manager.
+///
+/// @details Runs before slacker starts, this is to ensure that no windows
+/// from previous window managers are still lurking about.
+void Slacker__scan(void)
 {
-	unsigned int i, num;
-	Window d1, d2, *wins = NULL;
+	uint32_t number_child_windows = 0;
+	Window parent_return;
+	Window child_return;
+	Window *list_of_windows = NULL;
 	XWindowAttributes wa;
 
-	if (XQueryTree(dpy, root, &d1, &d2, &wins, &num)) {
-		for (i = 0; i < num; i++) {
-			if (!XGetWindowAttributes(dpy, wins[i], &wa) ||
+	if (XQueryTree(g_slacker.display, g_slacker.root, &parent_return,
+		       &child_return, &list_of_windows,
+		       &number_child_windows)) {
+		for (uint32_t i = 0; i < number_child_windows; ++i) {
+			if (!XGetWindowAttributes(g_slacker.display,
+						  list_of_windows[i], &wa) ||
 			    wa.override_redirect ||
-			    XGetTransientForHint(dpy, wins[i], &d1))
+			    XGetTransientForHint(g_slacker.display,
+						 list_of_windows[i],
+						 &parent_return)) {
 				continue;
+			}
+
 			if (wa.map_state == IsViewable ||
-			    getstate(wins[i]) == IconicState)
-				manage(wins[i], &wa);
+			    Slacker__getstate(list_of_windows[i]) ==
+				    IconicState) {
+				Slacker__manage(list_of_windows[i], &wa);
+			}
 		}
-		for (i = 0; i < num; i++) { /* now the transients */
-			if (!XGetWindowAttributes(dpy, wins[i], &wa))
+		// Clear transients
+		for (uint32_t i = 0; i < number_child_windows; ++i) {
+			if (!XGetWindowAttributes(g_slacker.display,
+						  list_of_windows[i], &wa))
 				continue;
-			if (XGetTransientForHint(dpy, wins[i], &d1) &&
+			if (XGetTransientForHint(g_slacker.display,
+						 list_of_windows[i],
+						 &parent_return) &&
 			    (wa.map_state == IsViewable ||
-			     getstate(wins[i]) == IconicState))
-				manage(wins[i], &wa);
+			     Slacker__getstate(list_of_windows[i]) ==
+				     IconicState)) {
+				Slacker__manage(list_of_windows[i], &wa);
+			}
 		}
-		if (wins)
-			XFree(wins);
+		if (list_of_windows) {
+			XFree(list_of_windows);
+		}
 	}
 }
 
-void sendmon(Client *c, Monitor *m)
+/// @brief Sends a client to a differnt monitor.
+///
+/// @param `client` The client to send to a different monitor
+/// @param `target_monitor` The monitor to send the client to
+void Client__send_to_monitor(Client *client, Monitor *target_monitor)
 {
-	if (c->mon == m)
+	// If the clients currently registered monitor is the same as the target monitor, return.
+	if (client->mon == target_monitor) {
 		return;
-	unfocus(c, 1);
-	detach(c);
-	detachstack(c);
-	c->mon = m;
-	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
-	attach(c);
-	attachstack(c);
-	focus(NULL);
-	arrange(NULL);
+	}
+
+	// Unfocus the client, detach it from the current monitor list and monitor stack.
+	Slacker__unfocus(client, 1);
+	Client__detach(client);
+	Client__detach_from_stack(client);
+	// Update the clients monitor with the new monitor it will be on.
+	client->mon = target_monitor;
+	// Assign tags of target monitor
+	client->tags = target_monitor->tagset[target_monitor->seltags];
+	// Attach the client to the new monitor list and stack, then focus,
+	// and arrange all monitors
+	Client__attach(client);
+	Client__attach_to_stack(client);
+	Slacker__focus(NULL);
+	Slacker__arrange_monitors(NULL);
 }
 
-void setclientstate(Client *c, long state)
+/// @brief Updates the client state property of a client.
+void Slacker__set_client_state(Client *client, int64_t state)
 {
-	long data[] = { state, None };
+	int64_t data[] = { state, None };
 
-	XChangeProperty(dpy, c->win, wmatom[SlackerDefaultAtom_WMState],
-			wmatom[SlackerDefaultAtom_WMState], 32, PropModeReplace,
-			(unsigned char *)data, 2);
+	XChangeProperty(g_slacker.display, client->win,
+			g_slacker.wmatom[SlackerDefaultAtom_WMState],
+			g_slacker.wmatom[SlackerDefaultAtom_WMState], 32,
+			PropModeReplace, (unsigned char *)data, 2);
 }
 
-int sendevent(Client *c, Atom proto)
+bool Slacker__send_event(Client *client, Atom proto)
 {
-	int n;
+	// size of protocols list
+	int32_t number_of_protocols = 0;
+	// list of protocols
 	Atom *protocols;
-	int exists = 0;
-	XEvent ev;
+	// Set to true if 1 or more protocols are supported by this client
+	bool exists = false;
 
-	if (XGetWMProtocols(dpy, c->win, &protocols, &n)) {
-		while (!exists && n--)
-			exists = protocols[n] == proto;
+	// Returns the list of atoms stored in the WM_PROTOCOLS property on the specified window.
+	// These atoms describe window manager protocols in which the owner of this window is willing to participate.
+	if (XGetWMProtocols(g_slacker.display, client->win, &protocols,
+			    &number_of_protocols)) {
+		while (!exists && number_of_protocols--) {
+			exists = protocols[number_of_protocols] == proto;
+		}
 		XFree(protocols);
 	}
+
+	// We know this client supports atleast on protocol, so send the event.
 	if (exists) {
+		XEvent ev;
 		ev.type = ClientMessage;
-		ev.xclient.window = c->win;
+		ev.xclient.window = client->win;
 		ev.xclient.message_type =
-			wmatom[SlackerDefaultAtom_WMProtocols];
+			g_slacker.wmatom[SlackerDefaultAtom_WMProtocols];
 		ev.xclient.format = 32;
 		ev.xclient.data.l[0] = proto;
 		ev.xclient.data.l[1] = CurrentTime;
-		XSendEvent(dpy, c->win, False, NoEventMask, &ev);
+		// The XSendEvent() function identifies the destination window,
+		// determines which clients should receive the specified events,
+		// and ignores any active grabs.
+		XSendEvent(g_slacker.display, client->win, False, NoEventMask,
+			   &ev);
 	}
 	return exists;
 }
 
-void setfocus(Client *c)
+/// @brief Sets the focus to a given client.
+void Slacker__setfocus(Client *client)
 {
-	if (!c->neverfocus) {
-		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
-		XChangeProperty(dpy, root,
-				netatom[SlackerEWMHAtom_NetActiveWindow],
-				XA_WINDOW, 32, PropModeReplace,
-				(unsigned char *)&(c->win), 1);
-	}
-	sendevent(c, wmatom[SlackerDefaultAtom_WMTakeFocus]);
-}
-
-void setfullscreen(Client *c, int fullscreen)
-{
-	if (fullscreen && !c->isfullscreen) {
+	if (!client->neverfocus) {
+		XSetInputFocus(g_slacker.display, client->win,
+			       RevertToPointerRoot, CurrentTime);
 		XChangeProperty(
-			dpy, c->win, netatom[SlackerEWMHAtom_NetWMState],
-			XA_ATOM, 32, PropModeReplace,
-			(unsigned char
-				 *)&netatom[SlackerEWMHAtom_NetWMFullscreen],
+			g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetActiveWindow],
+			XA_WINDOW, 32, PropModeReplace,
+			(unsigned char *)&(client->win), 1);
+	}
+	Slacker__send_event(client,
+			    g_slacker.wmatom[SlackerDefaultAtom_WMTakeFocus]);
+}
+
+/// @brief Sets the fullscreen state of a client.
+///
+/// TODO: Refactor, should be a Client__ function
+/// @param `client` The client to set the fullscreen state of
+/// @param `fullscreen` The fullscreen state to set
+void Slacker__setfullscreen(Client *client, int fullscreen)
+{
+	if (fullscreen && !client->isfullscreen) {
+		XChangeProperty(
+			g_slacker.display, client->win,
+			g_slacker.netatom[SlackerEWMHAtom_NetWMState], XA_ATOM,
+			32, PropModeReplace,
+			(unsigned char *)&g_slacker
+				.netatom[SlackerEWMHAtom_NetWMFullscreen],
 			1);
-		c->isfullscreen = 1;
-		c->oldstate = c->isfloating;
-		c->oldbw = c->bw;
-		c->bw = 0;
-		c->isfloating = 1;
-		resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
-		XRaiseWindow(dpy, c->win);
-	} else if (!fullscreen && c->isfullscreen) {
-		XChangeProperty(dpy, c->win,
-				netatom[SlackerEWMHAtom_NetWMState], XA_ATOM,
-				32, PropModeReplace, (unsigned char *)0, 0);
-		c->isfullscreen = 0;
-		c->isfloating = c->oldstate;
-		c->bw = c->oldbw;
-		c->x = c->oldx;
-		c->y = c->oldy;
-		c->w = c->oldw;
-		c->h = c->oldh;
-		resizeclient(c, c->x, c->y, c->w, c->h);
-		arrange(c->mon);
+		client->isfullscreen = 1;
+		client->oldstate = client->isfloating;
+		client->oldbw = client->bw;
+		client->bw = 0;
+		client->isfloating = 1;
+		Slacker__resize_client(client, client->mon->mx, client->mon->my,
+				       client->mon->mw, client->mon->mh);
+		XRaiseWindow(g_slacker.display, client->win);
+	} else if (!fullscreen && client->isfullscreen) {
+		XChangeProperty(g_slacker.display, client->win,
+				g_slacker.netatom[SlackerEWMHAtom_NetWMState],
+				XA_ATOM, 32, PropModeReplace,
+				(unsigned char *)0, 0);
+
+		client->isfullscreen = 0;
+		client->isfloating = client->oldstate;
+		client->bw = client->oldbw;
+		client->x = client->oldx;
+		client->y = client->oldy;
+		client->w = client->oldw;
+		client->h = client->oldh;
+		Slacker__resize_client(client, client->x, client->y, client->w,
+				       client->h);
+		Slacker__arrange_monitors(client->mon);
 	}
 }
 
-void setlayout(const Arg *arg)
+/// @brief Sets the layout of a monitor.
+///
+/// @param `arg` The argument to pass to the function, the void * is a Layout *
+void Slacker__setlayout(const Arg *arg)
 {
-	if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
-		selmon->sellt ^= 1;
-	if (arg && arg->v)
-		selmon->lt[selmon->sellt] = (Layout *)arg->v;
-	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol,
-		sizeof selmon->ltsymbol);
-	if (selmon->sel)
-		arrange(selmon);
-	else
-		drawbar(selmon);
+	Monitor *sm = g_slacker.selected_monitor;
+	if (!sm) {
+		return;
+	}
+
+	if (!arg || !arg->v || arg->v != sm->layouts[sm->selected_layout]) {
+		sm->selected_layout ^= 1;
+	}
+
+	if (arg && arg->v) {
+		sm->layouts[sm->selected_layout] = (Layout *)arg->v;
+	}
+
+	strncpy(sm->layout_symbol, sm->layouts[sm->selected_layout]->symbol,
+		sizeof(sm->layout_symbol));
+
+	if (sm->selected_client) {
+		Slacker__arrange_monitors(sm);
+	} else {
+		Slacker__drawbar(sm);
+	}
 }
 
-/* arg > 1.0 will set mfact absolutely */
-void setmfact(const Arg *arg)
+/// @brief arg > 1.0 will set mfact absolutely
+///
+/// TODO: Refactor: Should be a Monitor__ function
+/// @param `arg` The argument to pass to the function
+void Slacker__setmfact(const Arg *arg)
 {
-	float f;
+	Monitor *sm = g_slacker.selected_monitor;
 
-	if (!arg || !selmon->lt[selmon->sellt]->arrange)
+	if (!sm || !arg ||
+	    !sm->layouts[sm->selected_layout]->layout_arrange_callback) {
 		return;
-	f = arg->f < 1.0 ? arg->f + selmon->mfact : arg->f - 1.0;
-	if (f < 0.05 || f > 0.95)
+	}
+
+	float factor = arg->f < 1.0 ? arg->f + sm->mfact : arg->f - 1.0;
+
+	if (factor < 0.05 || factor > 0.95) {
 		return;
-	selmon->mfact = f;
-	arrange(selmon);
+	}
+	sm->mfact = factor;
+	Slacker__arrange_monitors(sm);
 }
 
-void setup(void)
+void Slacker__create(void)
 {
-	int i;
+	int32_t i = 0;
 	XSetWindowAttributes wa;
 	Atom utf8string;
 	struct sigaction sa;
@@ -1560,137 +2198,188 @@ void setup(void)
 	sigaction(SIGCHLD, &sa, NULL);
 
 	/* clean up any zombies (inherited from .xinitrc etc) immediately */
-	while (waitpid(-1, NULL, WNOHANG) > 0)
+	while (waitpid(-1, NULL, WNOHANG) > 0) {
 		;
+	}
 
-	/* init screen */
-	screen = DefaultScreen(dpy);
-	screen_width = DisplayWidth(dpy, screen);
-	screen_height = DisplayHeight(dpy, screen);
-	root = RootWindow(dpy, screen);
-	drw = drw_create(dpy, screen, root, screen_width, screen_height);
+	// TODO: Move these to slacker.c
+	g_slacker.is_running = true;
+	g_slacker.numlockmask = 0;
 
-	if (!drw_fontset_create(drw, GLOBAL_USER_FONT)) {
+	// Init screen
+	g_slacker.screen = DefaultScreen(g_slacker.display);
+	g_slacker.screen_width =
+		DisplayWidth(g_slacker.display, g_slacker.screen);
+	g_slacker.screen_height =
+		DisplayHeight(g_slacker.display, g_slacker.screen);
+	g_slacker.root = RootWindow(g_slacker.display, g_slacker.screen);
+	g_slacker.draw = drw_create(g_slacker.display, g_slacker.screen,
+				    g_slacker.root, g_slacker.screen_width,
+				    g_slacker.screen_height);
+
+	if (!drw_fontset_create(g_slacker.draw, GLOBAL_USER_FONT)) {
 		die("no fonts could be loaded.");
 	}
 
-	left_right_padding_sum = drw->fonts->h;
-	bar_height = drw->fonts->h + 2;
-	updategeom();
-	/* init atoms */
-	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
-	wmatom[SlackerDefaultAtom_WMProtocols] =
-		XInternAtom(dpy, "WM_PROTOCOLS", False);
-	wmatom[SlackerDefaultAtom_WMDelete] =
-		XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-	wmatom[SlackerDefaultAtom_WMState] =
-		XInternAtom(dpy, "WM_STATE", False);
-	wmatom[SlackerDefaultAtom_WMTakeFocus] =
-		XInternAtom(dpy, "WM_TAKE_FOCUS", False);
-	netatom[SlackerEWMHAtom_NetActiveWindow] =
-		XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
-	netatom[SlackerEWMHAtom_NetSupported] =
-		XInternAtom(dpy, "_NET_SUPPORTED", False);
-	netatom[SlackerEWMHAtom_NetWMName] =
-		XInternAtom(dpy, "_NET_WM_NAME", False);
-	netatom[SlackerEWMHAtom_NetWMState] =
-		XInternAtom(dpy, "_NET_WM_STATE", False);
-	netatom[SlackerEWMHAtom_NetWMCheck] =
-		XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-	netatom[SlackerEWMHAtom_NetWMFullscreen] =
-		XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-	netatom[SlackerEWMHAtom_NetWMWindowType] =
-		XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
-	netatom[SlackerEWMHAtom_NetWMWindowTypeDialog] =
-		XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-	netatom[SlackerEWMHAtom_NetClientList] =
-		XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+	g_slacker.left_right_padding_sum = g_slacker.draw->fonts->h;
+	g_slacker.bar_height = g_slacker.draw->fonts->h + 2;
 
-	/* init cursors */
-	cursor[SlackerCursorState_Normal] = drw_cur_create(drw, XC_left_ptr);
-	cursor[SlackerCursorState_Resize] = drw_cur_create(drw, XC_sizing);
-	cursor[SlackerCursorState_Move] = drw_cur_create(drw, XC_fleur);
+	// Creates monitors and sets the current monitor to the first one
+	Slacker__updategeom();
 
-	/* init appearance */
-	scheme = ecalloc(LENGTH(GLOBAL_COLORSCHEMES), sizeof(SlackerColor *));
+	// Init atoms
+	utf8string = XInternAtom(g_slacker.display, "UTF8_STRING", False);
+	g_slacker.wmatom[SlackerDefaultAtom_WMProtocols] =
+		XInternAtom(g_slacker.display, "WM_PROTOCOLS", False);
+	g_slacker.wmatom[SlackerDefaultAtom_WMDelete] =
+		XInternAtom(g_slacker.display, "WM_DELETE_WINDOW", False);
+	g_slacker.wmatom[SlackerDefaultAtom_WMState] =
+		XInternAtom(g_slacker.display, "WM_STATE", False);
+	g_slacker.wmatom[SlackerDefaultAtom_WMTakeFocus] =
+		XInternAtom(g_slacker.display, "WM_TAKE_FOCUS", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetActiveWindow] =
+		XInternAtom(g_slacker.display, "_NET_ACTIVE_WINDOW", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetSupported] =
+		XInternAtom(g_slacker.display, "_NET_SUPPORTED", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetWMName] =
+		XInternAtom(g_slacker.display, "_NET_WM_NAME", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetWMState] =
+		XInternAtom(g_slacker.display, "_NET_WM_STATE", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetWMCheck] = XInternAtom(
+		g_slacker.display, "_NET_SUPPORTING_WM_CHECK", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetWMFullscreen] = XInternAtom(
+		g_slacker.display, "_NET_WM_STATE_FULLSCREEN", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetWMWindowType] =
+		XInternAtom(g_slacker.display, "_NET_WM_WINDOW_TYPE", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetWMWindowTypeDialog] = XInternAtom(
+		g_slacker.display, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+	g_slacker.netatom[SlackerEWMHAtom_NetClientList] =
+		XInternAtom(g_slacker.display, "_NET_CLIENT_LIST", False);
+
+	// Init cursors
+	g_slacker.cursor[SlackerCursorState_Normal] =
+		drw_cur_create(g_slacker.draw, XC_left_ptr);
+	g_slacker.cursor[SlackerCursorState_Resize] =
+		drw_cur_create(g_slacker.draw, XC_sizing);
+	g_slacker.cursor[SlackerCursorState_Move] =
+		drw_cur_create(g_slacker.draw, XC_fleur);
+
+	// Init appearance
+	g_slacker.scheme =
+		ecalloc(LENGTH(GLOBAL_COLORSCHEMES), sizeof(SlackerColor *));
 	for (i = 0; i < LENGTH(GLOBAL_COLORSCHEMES); i++) {
-		scheme[i] = drw_scm_create(drw, GLOBAL_COLORSCHEMES[i], 3);
+		g_slacker.scheme[i] = drw_scm_create(g_slacker.draw,
+						     GLOBAL_COLORSCHEMES[i], 3);
 	}
 
-	/* init bars */
-	updatebars();
-	updatestatus();
+	// Init bars
+	Slacker__updatebars();
+	Slacker__update_status();
 
-	/* supporting window for NetWMCheck */
-	wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
-	XChangeProperty(dpy, wmcheckwin, netatom[SlackerEWMHAtom_NetWMCheck],
+	// Supporting window for NetWMCheck
+	g_slacker.wmcheckwin = XCreateSimpleWindow(
+		g_slacker.display, g_slacker.root, 0, 0, 1, 1, 0, 0, 0);
+
+	XChangeProperty(g_slacker.display, g_slacker.wmcheckwin,
+			g_slacker.netatom[SlackerEWMHAtom_NetWMCheck],
 			XA_WINDOW, 32, PropModeReplace,
-			(unsigned char *)&wmcheckwin, 1);
-	XChangeProperty(dpy, wmcheckwin, netatom[SlackerEWMHAtom_NetWMName],
+			(unsigned char *)&g_slacker.wmcheckwin, 1);
+
+	XChangeProperty(g_slacker.display, g_slacker.wmcheckwin,
+			g_slacker.netatom[SlackerEWMHAtom_NetWMName],
 			utf8string, 8, PropModeReplace,
 			(unsigned char *)"slacker", 3);
-	XChangeProperty(dpy, root, netatom[SlackerEWMHAtom_NetWMCheck],
+
+	XChangeProperty(g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetWMCheck],
 			XA_WINDOW, 32, PropModeReplace,
-			(unsigned char *)&wmcheckwin, 1);
-	/* EWMH support per view */
-	XChangeProperty(dpy, root, netatom[SlackerEWMHAtom_NetSupported],
-			XA_ATOM, 32, PropModeReplace, (unsigned char *)netatom,
+			(unsigned char *)&g_slacker.wmcheckwin, 1);
+
+	// EWMH support per view
+	XChangeProperty(g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetSupported],
+			XA_ATOM, 32, PropModeReplace,
+			(unsigned char *)g_slacker.netatom,
 			SlackerEWMHAtom_NetLast);
-	XDeleteProperty(dpy, root, netatom[SlackerEWMHAtom_NetClientList]);
-	/* select events */
-	wa.cursor = cursor[SlackerCursorState_Normal]->cursor;
+
+	XDeleteProperty(g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetClientList]);
+
+	// Register the events we plan to support with X
+	wa.cursor = g_slacker.cursor[SlackerCursorState_Normal]->cursor;
 	wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask |
 			ButtonPressMask | PointerMotionMask | EnterWindowMask |
 			LeaveWindowMask | StructureNotifyMask |
 			PropertyChangeMask;
-	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
-	XSelectInput(dpy, root, wa.event_mask);
-	grabkeys();
-	focus(NULL);
+
+	XChangeWindowAttributes(g_slacker.display, g_slacker.root,
+				CWEventMask | CWCursor, &wa);
+	XSelectInput(g_slacker.display, g_slacker.root, wa.event_mask);
+	Slacker__grab_keys();
+	Slacker__focus(NULL);
 }
 
-void seturgent(Client *c, int urg)
+/// @brief Sets the urgent state of a client.
+///
+/// TODO: Refactor: Could be a Client__ function by passing Display
+/// @param `client` The client to set the urgent state of
+/// @param `urgent` The urgent state to set
+void Slacker__seturgent(Client *client, int urgent)
 {
-	XWMHints *wmh;
+	XWMHints *wmh = NULL;
 
-	c->isurgent = urg;
-	if (!(wmh = XGetWMHints(dpy, c->win)))
+	client->isurgent = urgent;
+	if (!(wmh = XGetWMHints(g_slacker.display, client->win))) {
 		return;
-	wmh->flags = urg ? (wmh->flags | XUrgencyHint) :
-			   (wmh->flags & ~XUrgencyHint);
-	XSetWMHints(dpy, c->win, wmh);
+	}
+	wmh->flags = urgent ? (wmh->flags | XUrgencyHint) :
+			      (wmh->flags & ~XUrgencyHint);
+	XSetWMHints(g_slacker.display, client->win, wmh);
 	XFree(wmh);
 }
 
-void showhide(Client *c)
+/// @brief Shows or hides a client.
+///
+/// TODO: Refactor: Should be a Client__ function
+/// @param `client` The client to show or hide
+void Slacker__showhide(Client *client)
 {
-	if (!c)
+	if (!client) {
 		return;
-	if (ISVISIBLE(c)) {
-		/* show clients top down */
-		XMoveWindow(dpy, c->win, c->x, c->y);
-		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) &&
-		    !c->isfullscreen)
-			resize(c, c->x, c->y, c->w, c->h, 0);
-		showhide(c->snext);
+	}
+	if (ISVISIBLE(client)) {
+		// Show clients top down
+		XMoveWindow(g_slacker.display, client->win, client->x,
+			    client->y);
+		if ((!client->mon->layouts[client->mon->selected_layout]
+			      ->layout_arrange_callback ||
+		     client->isfloating) &&
+		    !client->isfullscreen)
+			Client__resize(client, client->x, client->y, client->w,
+				       client->h, 0);
+		Slacker__showhide(client->stack_next);
 	} else {
-		/* hide clients bottom up */
-		showhide(c->snext);
-		XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
+		// Hide clients bottom up
+		Slacker__showhide(client->stack_next);
+		XMoveWindow(g_slacker.display, client->win, WIDTH(client) * -2,
+			    client->y);
 	}
 }
 
-void spawn(const Arg *arg)
+/// @brief Helper function to spawn shell commands
+///
+/// @param `arg` The argument Union to pass to the function, the void * is a char *
+void Slacker__spawn(const Arg *arg)
 {
 	struct sigaction sa;
 
 	if (arg->v == GLOBAL_DMENU_COMMAND) {
-		GLOBAL_DMENU_MONITOR[0] = '0' + selmon->num;
+		GLOBAL_DMENU_MONITOR[0] = '0' + g_slacker.selected_monitor->num;
 	}
 
 	if (fork() == 0) {
-		if (dpy) {
-			close(ConnectionNumber(dpy));
+		if (g_slacker.display) {
+			close(ConnectionNumber(g_slacker.display));
 		}
 		setsid();
 
@@ -1704,237 +2393,346 @@ void spawn(const Arg *arg)
 	}
 }
 
-void tag(const Arg *arg)
+/// @brief Uses the arg.ui field as a bitmask to toggle the tag of a client.
+void Slacker__tag(const Arg *arg)
 {
-	if (selmon->sel && arg->ui & TAGMASK) {
-		selmon->sel->tags = arg->ui & TAGMASK;
-		focus(NULL);
-		arrange(selmon);
+	Monitor *sm = g_slacker.selected_monitor;
+	if (sm->selected_client && arg->ui & TAGMASK) {
+		sm->selected_client->tags = arg->ui & TAGMASK;
+		Slacker__focus(NULL);
+		Slacker__arrange_monitors(sm);
 	}
 }
 
-void tagmon(const Arg *arg)
+/// @brief Not sure what this does, debug
+void Slacker__tagmon(const Arg *arg)
 {
-	if (!selmon->sel || !mons->next)
+	// If there are no monitors return
+	if (!g_slacker.selected_monitor->selected_client ||
+	    !g_slacker.monitor_list->next) {
 		return;
-	sendmon(selmon->sel, dirtomon(arg->i));
+	}
+
+	Client__send_to_monitor(g_slacker.selected_monitor->selected_client,
+				Slacker__dir_to_monitor(arg->i));
 }
 
-void monitor_layout_master_stack(Monitor *m)
+void Monitor__layout_master_stack(Monitor *monitor)
 {
-	unsigned int i, n, h, mw, my, ty;
-	Client *c;
+	uint32_t i = 0;
+	uint32_t n = 0;
+	uint32_t h = 0;
+	uint32_t mw = 0;
+	uint32_t my = 0;
+	uint32_t ty = 0;
+	Client *temp_client = NULL;
 
-	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++)
+	// Check to see if we have any tiled clients on this monitor.
+	for (n = 0, temp_client = Client__next_tiled(monitor->client_list);
+	     temp_client;
+	     temp_client = Client__next_tiled(temp_client->next), ++n) {
 		;
-	if (n == 0)
+	}
+	// If we have no tiled clients, we have nothing to do.
+	if (n == 0) {
 		return;
+	}
 
-	if (n > m->nmaster)
-		mw = m->nmaster ? m->ww * m->mfact : 0;
-	else
-		mw = m->ww;
-	for (i = my = ty = 0, c = nexttiled(m->clients); c;
-	     c = nexttiled(c->next), i++)
-		if (i < m->nmaster) {
-			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
-			resize(c, m->wx, m->wy + my, mw - (2 * c->bw),
-			       h - (2 * c->bw), 0);
-			if (my + HEIGHT(c) < m->wh)
-				my += HEIGHT(c);
+	if (n > monitor->nmaster) {
+		mw = monitor->nmaster ? monitor->ww * monitor->mfact : 0;
+	} else {
+		mw = monitor->ww;
+	}
+
+	// TODO:  Refactor: Unreadable
+	for (i = my = ty = 0,
+	    temp_client = Client__next_tiled(monitor->client_list);
+	     temp_client;
+	     temp_client = Client__next_tiled(temp_client->next), ++i) {
+		if (i < monitor->nmaster) {
+			h = (monitor->wh - my) / (MIN(n, monitor->nmaster) - i);
+			Client__resize(temp_client, monitor->wx,
+				       monitor->wy + my,
+				       mw - (2 * temp_client->bw),
+				       h - (2 * temp_client->bw), 0);
+
+			if (my + HEIGHT(temp_client) < monitor->wh) {
+				my += HEIGHT(temp_client);
+			}
 		} else {
-			h = (m->wh - ty) / (n - i);
-			resize(c, m->wx + mw, m->wy + ty,
-			       m->ww - mw - (2 * c->bw), h - (2 * c->bw), 0);
-			if (ty + HEIGHT(c) < m->wh)
-				ty += HEIGHT(c);
+			h = (monitor->wh - ty) / (n - i);
+			Client__resize(temp_client, monitor->wx + mw,
+				       monitor->wy + ty,
+				       monitor->ww - mw - (2 * temp_client->bw),
+				       h - (2 * temp_client->bw), 0);
+			if (ty + HEIGHT(temp_client) < monitor->wh) {
+				ty += HEIGHT(temp_client);
+			}
 		}
-}
-
-void togglebar(const Arg *arg)
-{
-	selmon->showbar = !selmon->showbar;
-	updatebarpos(selmon);
-	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by,
-			  selmon->ww, bar_height);
-	arrange(selmon);
-}
-
-void togglefloating(const Arg *arg)
-{
-	if (!selmon->sel)
-		return;
-	if (selmon->sel->isfullscreen) /* no support for fullscreen windows */
-		return;
-	selmon->sel->isfloating = !selmon->sel->isfloating ||
-				  selmon->sel->isfixed;
-	if (selmon->sel->isfloating)
-		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
-		       selmon->sel->w, selmon->sel->h, 0);
-	arrange(selmon);
-}
-
-void toggletag(const Arg *arg)
-{
-	unsigned int newtags;
-
-	if (!selmon->sel)
-		return;
-	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
-	if (newtags) {
-		selmon->sel->tags = newtags;
-		focus(NULL);
-		arrange(selmon);
 	}
 }
 
-void toggleview(const Arg *arg)
+/// @brief Toggle the bar on the selected monitor.
+///
+/// @param `arg` Unused argument
+void Slacker__togglebar(const Arg *arg)
 {
-	unsigned int newtagset = selmon->tagset[selmon->seltags] ^
-				 (arg->ui & TAGMASK);
+	Monitor *sm = g_slacker.selected_monitor;
+
+	sm->showbar = !sm->showbar;
+	Monitor__updatebarpos(sm);
+	XMoveResizeWindow(g_slacker.display, sm->barwin, sm->wx, sm->by, sm->ww,
+			  g_slacker.bar_height);
+	Slacker__arrange_monitors(sm);
+}
+
+/// @brief Toggle the floating state of a client.
+void Slacker__togglefloating(const Arg *arg)
+{
+	Monitor *sm = g_slacker.selected_monitor;
+	if (!sm || !sm->selected_client) {
+		return;
+	}
+
+	// no support for fullscreen windows
+	if (sm->selected_client->isfullscreen) {
+		return;
+	}
+
+	sm->selected_client->isfloating = !sm->selected_client->isfloating ||
+					  sm->selected_client->isfixed;
+
+	if (sm->selected_client->isfloating) {
+		Client__resize(sm->selected_client, sm->selected_client->x,
+			       sm->selected_client->y, sm->selected_client->w,
+			       sm->selected_client->h, 0);
+	}
+
+	Slacker__arrange_monitors(sm);
+}
+
+void Slacker__toggletag(const Arg *arg)
+{
+	uint32_t newtags = 0;
+	Monitor *sm = g_slacker.selected_monitor;
+
+	if (!sm || !sm->selected_client) {
+		return;
+	}
+
+	newtags = sm->selected_client->tags ^ (arg->ui & TAGMASK);
+	if (newtags) {
+		sm->selected_client->tags = newtags;
+		Slacker__focus(NULL);
+		Slacker__arrange_monitors(sm);
+	}
+}
+
+void Slacker__toggleview(const Arg *arg)
+{
+	Monitor *sm = g_slacker.selected_monitor;
+	if (!sm) {
+		return;
+	}
+
+	uint32_t newtagset = sm->tagset[sm->seltags] ^ (arg->ui & TAGMASK);
 
 	if (newtagset) {
-		selmon->tagset[selmon->seltags] = newtagset;
-		focus(NULL);
-		arrange(selmon);
+		sm->tagset[sm->seltags] = newtagset;
+		Slacker__focus(NULL);
+		Slacker__arrange_monitors(sm);
 	}
 }
 
-void unfocus(Client *c, int setfocus)
+void Slacker__unfocus(Client *client, int setfocus)
 {
-	if (!c)
+	if (!client) {
 		return;
-	grabbuttons(c, 0);
-	XSetWindowBorder(dpy, c->win,
-			 scheme[SlackerColorscheme_Norm][ColBorder].pixel);
+	}
+
+	Slacker__grab_buttons(client, false);
+	XSetWindowBorder(
+		g_slacker.display, client->win,
+		g_slacker.scheme[SlackerColorscheme_Norm][ColBorder].pixel);
+
 	if (setfocus) {
-		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-		XDeleteProperty(dpy, root,
-				netatom[SlackerEWMHAtom_NetActiveWindow]);
+		XSetInputFocus(g_slacker.display, g_slacker.root,
+			       RevertToPointerRoot, CurrentTime);
+		XDeleteProperty(
+			g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetActiveWindow]);
 	}
 }
 
-void unmanage(Client *c, int destroyed)
+/// @brief Unmaps a client from the window manager.
+///
+/// @details TODO: This could be refactory into a Client__ function
+void Slacker__unmanage(Client *client, int destroyed)
 {
-	Monitor *m = c->mon;
+	Monitor *temp_monitor = client->mon;
 	XWindowChanges wc;
 
-	detach(c);
-	detachstack(c);
+	Client__detach(client);
+	Client__detach_from_stack(client);
 	if (!destroyed) {
-		wc.border_width = c->oldbw;
-		XGrabServer(dpy); /* avoid race conditions */
+		wc.border_width = client->oldbw;
+		// Avoid race conditions
+		XGrabServer(g_slacker.display);
+		// Set a dummy error handler function
 		XSetErrorHandler(xerrordummy);
-		XSelectInput(dpy, c->win, NoEventMask);
-		XConfigureWindow(dpy, c->win, CWBorderWidth,
-				 &wc); /* restore border */
-		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-		setclientstate(c, WithdrawnState);
-		XSync(dpy, False);
+		// Pass the client window id for input selection
+		XSelectInput(g_slacker.display, client->win, NoEventMask);
+		// Restore the border
+		XConfigureWindow(g_slacker.display, client->win, CWBorderWidth,
+				 &wc);
+		// Ungrab all buttons
+		XUngrabButton(g_slacker.display, AnyButton, AnyModifier,
+			      client->win);
+		Slacker__set_client_state(client, WithdrawnState);
+		XSync(g_slacker.display, False);
 		XSetErrorHandler(xerror);
-		XUngrabServer(dpy);
+		XUngrabServer(g_slacker.display);
 	}
-	free(c);
-	focus(NULL);
-	updateclientlist();
-	arrange(m);
+	free(client);
+	Slacker__focus(NULL);
+	Slacker__update_client_list();
+	Slacker__arrange_monitors(temp_monitor);
 }
 
-void event_unmapnotify(XEvent *e)
+void event_unmapnotify(XEvent *event)
 {
-	Client *c;
-	XUnmapEvent *ev = &e->xunmap;
+	Client *temp_client = NULL;
+	XUnmapEvent *ev = &event->xunmap;
 
-	if ((c = wintoclient(ev->window))) {
-		if (ev->send_event)
-			setclientstate(c, WithdrawnState);
-		else
-			unmanage(c, 0);
+	if ((temp_client = Slacker__win_to_client(ev->window))) {
+		if (ev->send_event) {
+			Slacker__set_client_state(temp_client, WithdrawnState);
+		} else {
+			Slacker__unmanage(temp_client, 0);
+		}
 	}
 }
 
-void updatebars(void)
+void Slacker__updatebars(void)
 {
-	Monitor *m;
+	Monitor *temp_monitor = NULL;
 	XSetWindowAttributes wa = { .override_redirect = True,
 				    .background_pixmap = ParentRelative,
 				    .event_mask = ButtonPressMask |
 						  ExposureMask };
+
 	XClassHint ch = { "slacker", "slacker" };
-	for (m = mons; m; m = m->next) {
-		if (m->barwin)
+	for (temp_monitor = g_slacker.monitor_list; temp_monitor;
+	     temp_monitor = temp_monitor->next) {
+		// If the bar exists for this monitor, continue
+		if (temp_monitor->barwin) {
 			continue;
-		m->barwin = XCreateWindow(
-			dpy, root, m->wx, m->by, m->ww, bar_height, 0,
-			DefaultDepth(dpy, screen), CopyFromParent,
-			DefaultVisual(dpy, screen),
+		}
+		// The bar does not exist, create it
+		temp_monitor->barwin = XCreateWindow(
+			g_slacker.display, g_slacker.root, temp_monitor->wx,
+			temp_monitor->by, temp_monitor->ww,
+			g_slacker.bar_height, 0,
+			DefaultDepth(g_slacker.display, g_slacker.screen),
+			CopyFromParent,
+			DefaultVisual(g_slacker.display, g_slacker.screen),
 			CWOverrideRedirect | CWBackPixmap | CWEventMask, &wa);
-		XDefineCursor(dpy, m->barwin,
-			      cursor[SlackerCursorState_Normal]->cursor);
-		XMapRaised(dpy, m->barwin);
-		XSetClassHint(dpy, m->barwin, &ch);
+
+		XDefineCursor(
+			g_slacker.display, temp_monitor->barwin,
+			g_slacker.cursor[SlackerCursorState_Normal]->cursor);
+		XMapRaised(g_slacker.display, temp_monitor->barwin);
+		XSetClassHint(g_slacker.display, temp_monitor->barwin, &ch);
 	}
 }
 
-void updatebarpos(Monitor *m)
+/// @brief Update the status bar position for one monitor
+///
+/// TODO: Could be moved into a new Bar stucture
+void Monitor__updatebarpos(Monitor *monitor)
 {
-	m->wy = m->my;
-	m->wh = m->mh;
-	if (m->showbar) {
-		m->wh -= bar_height;
-		m->by = m->topbar ? m->wy : m->wy + m->wh;
-		m->wy = m->topbar ? m->wy + bar_height : m->wy;
-	} else
-		m->by = -bar_height;
+	monitor->wy = monitor->my;
+	monitor->wh = monitor->mh;
+	if (monitor->showbar) {
+		monitor->wh -= g_slacker.bar_height;
+		monitor->by = monitor->topbar ? monitor->wy :
+						monitor->wy + monitor->wh;
+		monitor->wy = monitor->topbar ?
+				      monitor->wy + g_slacker.bar_height :
+				      monitor->wy;
+	} else {
+		monitor->by = -g_slacker.bar_height;
+	}
 }
 
-void updateclientlist(void)
+void Slacker__update_client_list(void)
 {
-	Client *c;
-	Monitor *m;
+	Client *temp_client = NULL;
+	Monitor *temp_monitor = NULL;
 
-	XDeleteProperty(dpy, root, netatom[SlackerEWMHAtom_NetClientList]);
-	for (m = mons; m; m = m->next)
-		for (c = m->clients; c; c = c->next)
-			XChangeProperty(dpy, root,
-					netatom[SlackerEWMHAtom_NetClientList],
-					XA_WINDOW, 32, PropModeAppend,
-					(unsigned char *)&(c->win), 1);
+	XDeleteProperty(g_slacker.display, g_slacker.root,
+			g_slacker.netatom[SlackerEWMHAtom_NetClientList]);
+
+	// For all monitors
+	for (temp_monitor = g_slacker.monitor_list; temp_monitor;
+	     temp_monitor = temp_monitor->next) {
+		// for each client on the monitor
+		for (temp_client = temp_monitor->client_list; temp_client;
+		     temp_client = temp_client->next) {
+			XChangeProperty(
+				g_slacker.display, g_slacker.root,
+				g_slacker.netatom[SlackerEWMHAtom_NetClientList],
+				XA_WINDOW, 32, PropModeAppend,
+				(unsigned char *)&(temp_client->win), 1);
+		}
+	}
 }
 
-int updategeom(void)
+/// @brief Update the geometry of the screen
+///
+/// @details For each monitor, update the width and height of the monitor
+/// based of the screen width and height. Then update the bar position,
+/// and map the current monitor to the root window id.
+bool Slacker__updategeom(void)
 {
-	int dirty = 0;
 	fprintf(stdout, "%s\n", __PRETTY_FUNCTION__);
+	bool dirty = false;
 
-	/* default monitor setup */
-	if (!mons)
-		mons = createmon();
-	if (mons->mw != screen_width || mons->mh != screen_height) {
-		dirty = 1;
-		mons->mw = mons->ww = screen_width;
-		mons->mh = mons->wh = screen_height;
-		updatebarpos(mons);
+	// Default monitor setup
+	if (!g_slacker.monitor_list) {
+		g_slacker.monitor_list = Monitor__create();
 	}
+
+	if (g_slacker.monitor_list->mw != g_slacker.screen_width ||
+	    g_slacker.monitor_list->mh != g_slacker.screen_height) {
+		dirty = true;
+		g_slacker.monitor_list->mw = g_slacker.monitor_list->ww =
+			g_slacker.screen_width;
+		g_slacker.monitor_list->mh = g_slacker.monitor_list->wh =
+			g_slacker.screen_height;
+		Monitor__updatebarpos(g_slacker.monitor_list);
+	}
+
 	if (dirty) {
-		selmon = mons;
-		selmon = wintomon(root);
+		g_slacker.selected_monitor = g_slacker.monitor_list;
+		g_slacker.selected_monitor = Slacker__wintomon(g_slacker.root);
 	}
 	return dirty;
 }
 
-void updatenumlockmask(void)
+void Slacker__update_numlock_mask(void)
 {
-	unsigned int i, j;
-	XModifierKeymap *modmap;
+	g_slacker.numlockmask = 0;
 
-	numlockmask = 0;
-	modmap = XGetModifierMapping(dpy);
-	for (i = 0; i < 8; i++)
-		for (j = 0; j < modmap->max_keypermod; j++)
+	XModifierKeymap *modmap = XGetModifierMapping(g_slacker.display);
+	for (uint32_t i = 0; i < 8; ++i) {
+		for (uint32_t j = 0; j < modmap->max_keypermod; ++j)
 			if (modmap->modifiermap[i * modmap->max_keypermod + j] ==
-			    XKeysymToKeycode(dpy, XK_Num_Lock))
-				numlockmask = (1 << i);
+			    XKeysymToKeycode(g_slacker.display, XK_Num_Lock)) {
+				g_slacker.numlockmask = (1 << i);
+			}
+	}
+
 	XFreeModifiermap(modmap);
 }
 
@@ -1943,7 +2741,7 @@ void updatesizehints(Client *c)
 	long msize;
 	XSizeHints size;
 
-	if (!XGetWMNormalHints(dpy, c->win, &size, &msize))
+	if (!XGetWMNormalHints(g_slacker.display, c->win, &size, &msize))
 		/* size is uninitialized, ensure that size.flags aren't used */
 		size.flags = PSize;
 	if (size.flags & PBaseSize) {
@@ -1982,94 +2780,142 @@ void updatesizehints(Client *c)
 	c->hintsvalid = 1;
 }
 
-void updatestatus(void)
+/// @brief Update the status text in the bar
+void Slacker__update_status(void)
 {
-	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext))) {
-		strcpy(stext, "slacker-" VERSION);
+	if (!Slacker__get_text_prop(g_slacker.root, XA_WM_NAME,
+				    g_slacker.status_text,
+				    sizeof(g_slacker.status_text))) {
+		strcpy(g_slacker.status_text, "slacker-" VERSION);
 	}
-	drawbar(selmon);
+	Slacker__drawbar(g_slacker.selected_monitor);
 }
 
-void updatetitle(Client *c)
+void Slacker__update_client_title(Client *client)
 {
-	if (!gettextprop(c->win, netatom[SlackerEWMHAtom_NetWMName], c->name,
-			 sizeof c->name))
-		gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
-	if (c->name[0] == '\0') /* hack to mark broken clients */
-		strcpy(c->name, broken);
+	if (!Slacker__get_text_prop(
+		    client->win, g_slacker.netatom[SlackerEWMHAtom_NetWMName],
+		    client->name, sizeof client->name)) {
+		Slacker__get_text_prop(client->win, XA_WM_NAME, client->name,
+				       sizeof client->name);
+	}
+
+	// hack to mark broken clients
+	if (client->name[0] == '\0') {
+		strcpy(client->name, BROKEN);
+	}
 }
 
-void updatewindowtype(Client *c)
+void Slacker__update_window_type(Client *client)
 {
-	Atom state = getatomprop(c, netatom[SlackerEWMHAtom_NetWMState]);
-	Atom wtype = getatomprop(c, netatom[SlackerEWMHAtom_NetWMWindowType]);
+	Atom state = Slacker__get_atom_prop(
+		client, g_slacker.netatom[SlackerEWMHAtom_NetWMState]);
 
-	if (state == netatom[SlackerEWMHAtom_NetWMFullscreen])
-		setfullscreen(c, 1);
-	if (wtype == netatom[SlackerEWMHAtom_NetWMWindowTypeDialog])
-		c->isfloating = 1;
+	Atom wtype = Slacker__get_atom_prop(
+		client, g_slacker.netatom[SlackerEWMHAtom_NetWMWindowType]);
+
+	if (state == g_slacker.netatom[SlackerEWMHAtom_NetWMFullscreen]) {
+		Slacker__setfullscreen(client, 1);
+	}
+
+	if (wtype == g_slacker.netatom[SlackerEWMHAtom_NetWMWindowTypeDialog]) {
+		client->isfloating = 1;
+	}
 }
 
-void updatewmhints(Client *c)
+void Slacker__update_wmhints(Client *client)
 {
 	XWMHints *wmh;
 
-	if ((wmh = XGetWMHints(dpy, c->win))) {
-		if (c == selmon->sel && wmh->flags & XUrgencyHint) {
+	if ((wmh = XGetWMHints(g_slacker.display, client->win))) {
+		if (client == g_slacker.selected_monitor->selected_client &&
+		    wmh->flags & XUrgencyHint) {
 			wmh->flags &= ~XUrgencyHint;
-			XSetWMHints(dpy, c->win, wmh);
-		} else
-			c->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
-		if (wmh->flags & InputHint)
-			c->neverfocus = !wmh->input;
-		else
-			c->neverfocus = 0;
+			XSetWMHints(g_slacker.display, client->win, wmh);
+		} else {
+			client->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
+		}
+
+		if (wmh->flags & InputHint) {
+			client->neverfocus = !wmh->input;
+		} else {
+			client->neverfocus = 0;
+		}
+
 		XFree(wmh);
 	}
 }
 
-void view(const Arg *arg)
+void Slacker__view(const Arg *arg)
 {
-	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
+	Monitor *sm = g_slacker.selected_monitor;
+	if (!sm) {
 		return;
-	selmon->seltags ^= 1; /* toggle sel tagset */
-	if (arg->ui & TAGMASK)
-		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
-	focus(NULL);
-	arrange(selmon);
+	}
+
+	if ((arg->ui & TAGMASK) == sm->tagset[sm->seltags]) {
+		return;
+	}
+
+	// Toggle selected tag set
+	sm->seltags ^= 1;
+	if (arg->ui & TAGMASK) {
+		sm->tagset[sm->seltags] = arg->ui & TAGMASK;
+	}
+
+	Slacker__focus(NULL);
+	Slacker__arrange_monitors(sm);
 }
 
-Client *wintoclient(Window w)
+/// @brief Maps a window id to an existing client.
+/// if no client is found, returns NULL
+Client *Slacker__win_to_client(Window wid)
 {
-	Client *c;
-	Monitor *m;
+	Client *temp_client = NULL;
+	Monitor *temp_monitor = NULL;
 
-	for (m = mons; m; m = m->next)
-		for (c = m->clients; c; c = c->next)
-			if (c->win == w)
-				return c;
+	for (temp_monitor = g_slacker.monitor_list; temp_monitor;
+	     temp_monitor = temp_monitor->next) {
+		for (temp_client = temp_monitor->client_list; temp_client;
+		     temp_client = temp_client->next) {
+			if (temp_client->win == wid) {
+				return temp_client;
+			}
+		}
+	}
+
 	return NULL;
 }
 
-Monitor *wintomon(Window w)
+Monitor *Slacker__wintomon(Window wid)
 {
-	int x, y;
-	Client *c;
-	Monitor *m;
+	int32_t x, y = 0;
+	Client *temp_client = NULL;
+	Monitor *temp_monitor = NULL;
 
-	if (w == root && getrootptr(&x, &y))
-		return recttomon(x, y, 1, 1);
-	for (m = mons; m; m = m->next)
-		if (w == m->barwin)
-			return m;
-	if ((c = wintoclient(w)))
-		return c->mon;
-	return selmon;
+	if (wid == g_slacker.root && Slacker__getrootptr(&x, &y)) {
+		return Slacker__rect_to_monitor(x, y, 1, 1);
+	}
+
+	for (temp_monitor = g_slacker.monitor_list; temp_monitor;
+	     temp_monitor = temp_monitor->next) {
+		if (wid == temp_monitor->barwin) {
+			return temp_monitor;
+		}
+	}
+
+	if ((temp_client = Slacker__win_to_client(wid))) {
+		return temp_client->mon;
+	}
+
+	return g_slacker.selected_monitor;
 }
 
-/* There's no way to check accesses to destroyed windows, thus those cases are
- * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
- * default error handler, which may call exit. */
+/// @brief X11 error handler
+///
+/// @details There's no way to check accesses to destroyed windows, thus those cases are
+/// ignored (especially on UnmapNotify's). Other types of errors call Xlibs
+/// default error handler, which may call exit.
 int xerror(Display *dpy, XErrorEvent *ee)
 {
 	if (ee->error_code == BadWindow ||
@@ -2090,7 +2936,7 @@ int xerror(Display *dpy, XErrorEvent *ee)
 	fprintf(stderr,
 		"slacker: fatal error: request code=%d, error code=%d\n",
 		ee->request_code, ee->error_code);
-	return xerrorxlib(dpy, ee); /* may call exit */
+	return g_slacker.xerrorxlib(dpy, ee); /* may call exit */
 }
 
 int xerrordummy(Display *dpy, XErrorEvent *ee)
@@ -2098,23 +2944,37 @@ int xerrordummy(Display *dpy, XErrorEvent *ee)
 	return 0;
 }
 
-/* Startup Error handler to check if another window manager
- * is already running. */
+/// @brief Startup Error handler to check if another window manager
+/// is already running
 int xerrorstart(Display *dpy, XErrorEvent *ee)
 {
 	die("slacker: another window manager is already running");
 	return -1;
 }
 
-void zoom(const Arg *arg)
+void Slacker__zoom(const Arg *arg)
 {
-	Client *c = selmon->sel;
+	Monitor *sm = g_slacker.selected_monitor;
+	if (!sm) {
+		return;
+	}
 
-	if (!selmon->lt[selmon->sellt]->arrange || !c || c->isfloating)
+	Client *sc = g_slacker.selected_monitor->selected_client;
+	if (!sc) {
 		return;
-	if (c == nexttiled(selmon->clients) && !(c = nexttiled(c->next)))
+	}
+
+	if (!sm->layouts[sm->selected_layout]->layout_arrange_callback ||
+	    sc->isfloating) {
 		return;
-	pop(c);
+	}
+
+	if (sc == Client__next_tiled(sm->client_list) &&
+	    !(sc = Client__next_tiled(sc->next))) {
+		return;
+	}
+
+	Client__pop(sc);
 }
 
 int main(int argc, char *argv[])
@@ -2124,7 +2984,8 @@ int main(int argc, char *argv[])
 		sleep(15);
 	}
 	if (argc == 2 && !strcmp("-v", argv[1])) {
-		die("slacker-" VERSION);
+		fprintf(stdout, "slacker-" VERSION "\n");
+		return EXIT_SUCCESS;
 	} else if (argc != 1) {
 		die("usage: slacker [-v]");
 	} else {
@@ -2132,16 +2993,17 @@ int main(int argc, char *argv[])
 			fputs("warning: no locale support\n", stderr);
 		}
 
-		if (!(dpy = XOpenDisplay(NULL))) {
+		if (!(g_slacker.display = XOpenDisplay(NULL))) {
 			die("slacker: cannot open display");
 		}
-		checkotherwm();
-		setup();
 
-		scan();
-		run();
-		cleanup();
-		XCloseDisplay(dpy);
+		Slacker__checkotherwm();
+		Slacker__create();
+
+		Slacker__scan();
+		Slacker__run();
+		Slacker__destroy();
+		XCloseDisplay(g_slacker.display);
 	}
 
 	return EXIT_SUCCESS;

@@ -6,6 +6,7 @@
 #include <X11/keysym.h>
 
 // Standard Libraries
+#include <bits/stdint-uintn.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -71,22 +72,29 @@ enum SlackerClick {
 /// Data Structures
 //////////////////////////
 
-/// @brief Represents an argument to a function
 typedef union Arg Arg;
+
+/// @brief Represents an argument to a function
 union Arg {
 	int32_t i;
-	int32_t ui;
+	uint32_t ui;
 	float f;
 	const void *v;
 };
 
-/// @brief Represents a button
 typedef struct Button Button;
+
+/// @brief Represents a button
 struct Button {
+	// SlackerClick enum
 	uint32_t click;
+	// Event mask
 	uint32_t mask;
+	// X11 button number
 	uint32_t button;
-	void (*func)(const Arg *arg);
+	// Callback function to handle the button press
+	void (*button_handler_callback)(const Arg *arg);
+	// Argument to the callback function
 	const Arg arg;
 };
 
@@ -109,7 +117,7 @@ struct Client {
 	int32_t oldstate;
 	int32_t isfullscreen;
 	Client *next;
-	Client *snext;
+	Client *stack_next;
 	Monitor *mon;
 	Window win;
 };
@@ -117,50 +125,74 @@ struct Client {
 /// @brief A hotkey combination to be bound to a function
 typedef struct KeyMap KeyMap;
 struct KeyMap {
-	// Modifier
+	/// Modifier
 	uint32_t mod;
+	/// X11 keysym
 	KeySym keysym;
-	// Callback functions
-	void (*func)(const Arg *);
+	/// Callback functions
+	void (*keymap_callback)(const Arg *);
+	/// Argument to the callback function
 	const Arg arg;
 };
 
 /// @brief Represents a layout
 typedef struct Layout Layout;
 struct Layout {
+	/// Layout symbol thats displayed in the bar
 	const char *symbol;
-	void (*arrange)(Monitor *);
+	/// Layout callback function
+	void (*layout_arrange_callback)(Monitor *);
 };
 
 /// @brief Represents a physical monitor
 struct Monitor {
-	char ltsymbol[16];
+	/// Layout symbol thats displayed in the bar
+	char layout_symbol[MAX_LAYOUT_SYMBOL_LEN];
+	/// Master width factor (how much space the master window takes up)
 	float mfact;
+	/// Number of windows in the master area, default is 1
 	int32_t nmaster;
+	/// Number of all monitors?
 	int32_t num;
-	int32_t by; /* bar geometry */
-	int32_t mx, my, mw, mh; /* screen size */
-	int32_t wx, wy, ww, wh; /* window area  */
+	/// Bar geometry
+	int32_t by;
+	/// Screen geometry
+	int32_t mx, my, mw, mh;
+	/// Window area
+	int32_t wx, wy, ww, wh;
+	/// Selected tags
 	uint32_t seltags;
-	uint32_t sellt;
-	uint32_t tagset[2];
+	/// Selected layout
+	uint32_t selected_layout;
+	/// Tag set
+	uint32_t tagset[MAX_TAG_SETS];
+	/// Bar is shown
 	int32_t showbar;
+	/// Bar is on top 1 for true, 0 for false
 	int32_t topbar;
-	Client *clients;
-	Client *sel;
-	Client *stack;
+	/// Currently selected client
+	Client *selected_client;
+	/// A linked list of all the clients on this monitor
+	Client *client_list;
+	/// Stack of clients, used to preserve order
+	Client *client_stack;
+	/// Next monitor in the linked list of monitors
 	Monitor *next;
+	/// Xid for the bar window
 	Window barwin;
-	const Layout *lt[2];
+	/// Layouts
+	const Layout *layouts[MAX_LAYOUTS];
 };
 
-void monitor_layout_master_stack(Monitor *m);
+/// @brief Sets the layout to master stack for a monitor
+void Monitor__layout_master_stack(Monitor *m);
 
-void monitor_layout_monocle(Monitor *m);
+/// @brief Sets the layout to monocle for a monitor
+void Monitor__layout_monocle(Monitor *m);
 
 /// @brief Window WINDOW_RULES
-typedef struct WindowRule WindowRule;
-struct WindowRule {
+typedef struct SlackerWindowRule WindowRule;
+struct SlackerWindowRule {
 	const char *window_class;
 	const char *instance;
 	const char *title;

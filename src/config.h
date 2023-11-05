@@ -50,12 +50,16 @@ extern const char *GLOBAL_TERMINAL_COMMAND[];
 /// @brief KeyMap Definitions
 #define MODKEY Mod1Mask
 
+/// @brief Helper for defining the tag key bindings
 #define TAGKEYS(KEY, TAG)                                                      \
-	{ MODKEY, KEY, view, { .ui = 1 << TAG } },                             \
-		{ MODKEY | ControlMask, KEY, toggleview, { .ui = 1 << TAG } }, \
-		{ MODKEY | ShiftMask, KEY, tag, { .ui = 1 << TAG } },          \
+	{ MODKEY, KEY, Slacker__view, { .ui = 1 << TAG } },                             \
+		{ MODKEY | ControlMask,                                        \
+		  KEY,                                                         \
+		  Slacker__toggleview,                                         \
+		  { .ui = 1 << TAG } },                                        \
+		{ MODKEY | ShiftMask, KEY, Slacker__tag, { .ui = 1 << TAG } }, \
 	{                                                                      \
-		MODKEY | ControlMask | ShiftMask, KEY, toggletag,              \
+		MODKEY | ControlMask | ShiftMask, KEY, Slacker__toggletag,     \
 		{                                                              \
 			.ui = 1 << TAG                                         \
 		}                                                              \

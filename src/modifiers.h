@@ -3,40 +3,40 @@
 
 #include "monitor.h"
 
-void spawn(const Arg *arg);
+void Slacker__spawn(const Arg *arg);
 
-void togglebar(const Arg *arg);
+void Slacker__togglebar(const Arg *arg);
 
-void toggletag(const Arg *arg);
+void Slacker__toggletag(const Arg *arg);
 
-void toggleview(const Arg *arg);
+void Slacker__toggleview(const Arg *arg);
 
-void focusstack(const Arg *arg);
+void Slacker__focus_stack(const Arg *arg);
 
-void incnmaster(const Arg *arg);
+void Slacker__increment_n_master(const Arg *arg);
 
-void setmfact(const Arg *arg);
+void Slacker__setmfact(const Arg *arg);
 
-void zoom(const Arg *arg);
+void Slacker__zoom(const Arg *arg);
 
-void view(const Arg *arg);
+void Slacker__view(const Arg *arg);
 
-void killclient(const Arg *arg);
+void Slacker__kill_client(const Arg *arg);
 
-void setlayout(const Arg *arg);
+void Slacker__setlayout(const Arg *arg);
 
-void togglefloating(const Arg *arg);
+void Slacker__togglefloating(const Arg *arg);
 
-void tag(const Arg *arg);
+void Slacker__tag(const Arg *arg);
 
-void focusmon(const Arg *arg);
+void Slacker__focus_monitor(const Arg *arg);
 
-void tagmon(const Arg *arg);
+void Slacker__tagmon(const Arg *arg);
 
-void quit(const Arg *arg);
+void Slacker__quit(const Arg *arg);
 
-void movemouse(const Arg *arg);
+void Slacker__move_with_mouse(const Arg *arg);
 
-void resizemouse(const Arg *arg);
+void Slacker__resize_client_with_mouse(const Arg *arg);
 
 #endif // SLACKER_MODIFIERS_H

@@ -14,32 +14,10 @@
 #include "drawable.h"
 #include "monitor.h"
 
-// typedef struct State State;
-// struct State {
-// 	/// screen id
-// 	int32_t screen;
-// 	/// screen width
-// 	int32_t sw;
-// 	/// screen height
-// 	int32_t sh;
-// 	/// bar height
-// 	int32_t bh;
-// 	/// sum of left and right text padding
-// 	int32_t lrpad;
-// 	/// num lock mask
-// 	uint32_t numlockmask;
-// 	/// List of monitors
-// 	Monitor *mons;
-// 	/// selected monitor
-// 	Monitor *selmon;
-// };
-
 typedef struct Slacker Slacker;
 struct Slacker {
-	/// Client text which displays in the bar when the client is broken
-	const char *broken;
-	/// Current client text which displays in the bar
-	char stext[MAX_CLIENT_NAME_LEN];
+	/// Status text that is displayed in the top right corner of the bar
+	char status_text[MAX_STATUS_BAR_TEXT_LEN];
 	/// X screen id
 	int32_t screen;
 	/// X display screen geometry width
@@ -65,17 +43,19 @@ struct Slacker {
 	/// Slacker color schemes
 	SlackerColor **scheme;
 	/// X display
-	Display *dpy;
+	Display *display;
 	/// Drawable abstraction
-	Drw *drw;
-	/// All connected monitors
-	Monitor *mons;
+	Drw *draw;
+	/// Linked list of all connected monitors
+	Monitor *monitor_list;
 	/// Currently selected monitor
-	Monitor *selmon;
+	Monitor *selected_monitor;
 	/// Root window
 	Window root;
 	/// Window manager check window
 	Window wmcheckwin;
 };
+
+extern Slacker g_slacker;
 
 #endif

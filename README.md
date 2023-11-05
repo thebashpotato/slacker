@@ -34,12 +34,12 @@ An X Tiling Window Manager for GNU/Linux and BSD's.
 
 `sudo make install`
 
-# Development
+## Development
 
-> The following utilities are what a C programmer using Makefiles targeting 
+> The following utilities are what a C programmer using Makefiles targeting
 > the X11 environment will need for debugging and testing, and sanity.
 
-1. `bear` => Generates a `compile_commands.json` file so your 
+1. `bear` => Generates a `compile_commands.json` file so your
     language service provider will know what the hell is going on.
 
     - Install: `sudo apt install bear`
@@ -50,7 +50,6 @@ An X Tiling Window Manager for GNU/Linux and BSD's.
 
     - Install: `sudo apt install xserver-xephyr`
     - Usage: `make embed`
-
 
 ## Maintainers
 

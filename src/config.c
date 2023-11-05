@@ -1,5 +1,6 @@
 #include "config.h"
 #include "constants.h"
+#include "modifiers.h"
 #include "monitor.h"
 
 // clang-format off
@@ -45,39 +46,39 @@ const Layout GLOBAL_LAYOUTS[] = {
     // =================================
     // | Symbol       Arrange function |
     // =================================
-    { "[]=",         monitor_layout_master_stack    }, // first entry is default
-    { "><>",         NULL                           }, // no layout function means floating behavior
-    { "[M]",         monitor_layout_monocle         }, // monocle layout
+    { "[]=",         Monitor__layout_master_stack    }, // first entry is default
+    { "><>",         NULL                            }, // no layout function means floating behavior
+    { "[M]",         Monitor__layout_monocle         }, // monocle layout
 };
 
 const KeyMap GLOBAL_KEYBINDINGS[MAX_KEY_BINDINGS] = {
-    // =============================================================================
-    // | Modifier           Key             Function                Argument       |
-    // =============================================================================
-    { MODKEY,                XK_p,           spawn,          {.v = GLOBAL_DMENU_COMMAND}        },
-    { MODKEY | ShiftMask,    XK_Return,      spawn,          {.v = GLOBAL_TERMINAL_COMMAND}     },
-    { MODKEY,                XK_b,           togglebar,      {0}                                },
-    { MODKEY,                XK_j,           focusstack,     {.i = +1}                          },
-    { MODKEY,                XK_k,           focusstack,     {.i = -1}                          },
-    { MODKEY,                XK_i,           incnmaster,     {.i = +1}                          },
-    { MODKEY,                XK_d,           incnmaster,     {.i = -1}                          },
-    { MODKEY,                XK_h,           setmfact,       {.f = -0.05}                       },
-    { MODKEY,                XK_l,           setmfact,       {.f = +0.05}                       },
-    { MODKEY,                XK_Return,      zoom,           {0}                                },
-    { MODKEY,                XK_Tab,         view,           {0}                                },
-    { MODKEY | ShiftMask,    XK_c,           killclient,     {0}                                },
-    { MODKEY,                XK_t,           setlayout,      {.v = &GLOBAL_LAYOUTS[0]}          },
-    { MODKEY,                XK_f,           setlayout,      {.v = &GLOBAL_LAYOUTS[1]}          },
-    { MODKEY,                XK_m,           setlayout,      {.v = &GLOBAL_LAYOUTS[2]}          },
-    { MODKEY,                XK_space,       setlayout,      {0}                                },
-    { MODKEY | ShiftMask,    XK_space,       togglefloating, {0}                                },
-    { MODKEY,                XK_0,           view,           {.ui = ~0}                         },
-    { MODKEY | ShiftMask,    XK_0,           tag,            {.ui = ~0}                         },
-    { MODKEY,                XK_comma,       focusmon,       {.i = -1}                          },
-    { MODKEY,                XK_period,      focusmon,       {.i = +1}                          },
-    { MODKEY | ShiftMask,    XK_comma,       tagmon,         {.i = -1}                          },
-    { MODKEY | ShiftMask,    XK_period,      tagmon,         {.i = +1}                          },
-    { MODKEY | ShiftMask,    XK_q,           quit,           {0}                                },
+    // =============================================================================================
+    // | Modifier            Key             Function                               Argument       |
+    // =============================================================================================
+    { MODKEY,                XK_p,           Slacker__spawn,                    {.v = GLOBAL_DMENU_COMMAND}         },
+    { MODKEY | ShiftMask,    XK_Return,      Slacker__spawn,                    {.v = GLOBAL_TERMINAL_COMMAND}      },
+    { MODKEY,                XK_b,           Slacker__togglebar,                {0}                                 },
+    { MODKEY,                XK_j,           Slacker__focus_stack,               {.i = +1}                           },
+    { MODKEY,                XK_k,           Slacker__focus_stack,               {.i = -1}                           },
+    { MODKEY,                XK_i,           Slacker__increment_n_master,       {.i = +1}                           },
+    { MODKEY,                XK_d,           Slacker__increment_n_master,       {.i = -1}                           },
+    { MODKEY,                XK_h,           Slacker__setmfact,                 {.f = -0.05}                        },
+    { MODKEY,                XK_l,           Slacker__setmfact,                 {.f = +0.05}                        },
+    { MODKEY,                XK_Return,      Slacker__zoom,                              {0}                                 },
+    { MODKEY,                XK_Tab,         Slacker__view,                              {0}                                 },
+    { MODKEY | ShiftMask,    XK_c,           Slacker__kill_client,              {0}                                 },
+    { MODKEY,                XK_t,           Slacker__setlayout,                {.v = &GLOBAL_LAYOUTS[0]}           },
+    { MODKEY,                XK_f,           Slacker__setlayout,                {.v = &GLOBAL_LAYOUTS[1]}           },
+    { MODKEY,                XK_m,           Slacker__setlayout,                {.v = &GLOBAL_LAYOUTS[2]}           },
+    { MODKEY,                XK_space,       Slacker__setlayout,                {0}                                 },
+    { MODKEY | ShiftMask,    XK_space,       Slacker__togglefloating,           {0}                                 },
+    { MODKEY,                XK_0,           Slacker__view,                              {.ui = ~0}                          },
+    { MODKEY | ShiftMask,    XK_0,           Slacker__tag,                      {.ui = ~0}                          },
+    { MODKEY,                XK_comma,       Slacker__focus_monitor,            {.i = -1}                           },
+    { MODKEY,                XK_period,      Slacker__focus_monitor,            {.i = +1}                           },
+    { MODKEY | ShiftMask,    XK_comma,       Slacker__tagmon,                   {.i = -1}                           },
+    { MODKEY | ShiftMask,    XK_period,      Slacker__tagmon,                   {.i = +1}                           },
+    { MODKEY | ShiftMask,    XK_q,           Slacker__quit,                     {0}                                 },
     TAGKEYS(XK_1, 0),
     TAGKEYS(XK_2, 1),
     TAGKEYS(XK_3, 2),
@@ -90,20 +91,20 @@ const KeyMap GLOBAL_KEYBINDINGS[MAX_KEY_BINDINGS] = {
 };
 
 const Button GLOBAL_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS] = {
-    // ===============================================================================================
-    // | Click              EventMask        Button          Function           Argument             |
-    // ===============================================================================================
-    { SlackerClick_LtSymbol,           0,              Button1,        setlayout,      {0}                              },
-    { SlackerClick_LtSymbol,           0,              Button3,        setlayout,      {.v = &GLOBAL_LAYOUTS[2]}        },
-    { SlackerClick_WinTitle,           0,              Button2,        zoom,           {0}                              },
-    { SlackerClick_StatusText,         0,              Button2,        spawn,          {.v = GLOBAL_TERMINAL_COMMAND}   },
-    { SlackerClick_ClientWin,          MODKEY,         Button1,        movemouse,      {0}                              },
-    { SlackerClick_ClientWin,          MODKEY,         Button2,        togglefloating, {0}                              },
-    { SlackerClick_ClientWin,          MODKEY,         Button3,        resizemouse,    {0}                              },
-    { SlackerClick_TagBar,             0,              Button1,        view,           {0}                              },
-    { SlackerClick_TagBar,             0,              Button3,        toggleview,     {0}                              },
-    { SlackerClick_TagBar,             MODKEY,         Button1,        tag,            {0}                              },
-    { SlackerClick_TagBar,             MODKEY,         Button3,        toggletag,      {0}                              },
+    // ====================================================================================================================
+    // | Click                      EventMask           Button          Function                            Argument      |
+    // ====================================================================================================================
+    { SlackerClick_LtSymbol,           0,              Button1,        Slacker__setlayout,                  {0}                                 },
+    { SlackerClick_LtSymbol,           0,              Button3,        Slacker__setlayout,                  {.v = &GLOBAL_LAYOUTS[2]}           },
+    { SlackerClick_WinTitle,           0,              Button2,        Slacker__zoom,                                {0}                                 },
+    { SlackerClick_StatusText,         0,              Button2,        Slacker__spawn,                      {.v = GLOBAL_TERMINAL_COMMAND}      },
+    { SlackerClick_ClientWin,          MODKEY,         Button1,        Slacker__move_with_mouse,            {0}                                 },
+    { SlackerClick_ClientWin,          MODKEY,         Button2,        Slacker__togglefloating,                      {0}                                 },
+    { SlackerClick_ClientWin,          MODKEY,         Button3,        Slacker__resize_client_with_mouse,   {0}                                 },
+    { SlackerClick_TagBar,             0,              Button1,        Slacker__view,                                {0}                                 },
+    { SlackerClick_TagBar,             0,              Button3,        Slacker__toggleview,                          {0}                                 },
+    { SlackerClick_TagBar,             MODKEY,         Button1,        Slacker__tag,                        {0}                                 },
+    { SlackerClick_TagBar,             MODKEY,         Button3,        Slacker__toggletag,                           {0}                                 },
 };
 
 // clang-format on
