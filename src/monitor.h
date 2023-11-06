@@ -1,18 +1,18 @@
-#ifndef SLACKER_MONITOR_H
-#define SLACKER_MONITOR_H
+#ifndef SWM_MONITOR_H
+#define SWM_MONITOR_H
 
 // X11 Libraries
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
 // Standard Libraries
-#include <bits/stdint-uintn.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 // Slacker Headers
 #include "constants.h"
+#include "client.h"
 
 ////////////////////
 /// Enumerations
@@ -72,6 +72,17 @@ enum SlackerClick {
 /// Data Structures
 //////////////////////////
 
+/// @brief Window WINDOW_RULES
+typedef struct SlackerWindowRule WindowRule;
+struct SlackerWindowRule {
+	const char *window_class;
+	const char *instance;
+	const char *title;
+	uint32_t tags;
+	int32_t isfloating;
+	int32_t monitor;
+};
+
 typedef union Arg Arg;
 
 /// @brief Represents an argument to a function
@@ -98,44 +109,20 @@ struct Button {
 	const Arg arg;
 };
 
-typedef struct Monitor Monitor;
-
-/// @brief Represents an X client window
-typedef struct Client Client;
-struct Client {
-	char name[MAX_CLIENT_NAME_LEN];
-	float mina, maxa;
-	int32_t x, y, w, h;
-	int32_t oldx, oldy, oldw, oldh;
-	int32_t basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
-	int32_t bw, oldbw;
-	uint32_t tags;
-	int32_t isfixed;
-	int32_t isfloating;
-	int32_t isurgent;
-	int32_t neverfocus;
-	int32_t oldstate;
-	int32_t isfullscreen;
-	Client *next;
-	Client *stack_next;
-	Monitor *mon;
-	Window win;
-};
-
 /// @brief A hotkey combination to be bound to a function
 typedef struct KeyMap KeyMap;
 struct KeyMap {
-	/// Modifier
+	/// Modifier key
 	uint32_t mod;
-	/// X11 keysym
+	/// X11 keysym representation of the key
 	KeySym keysym;
-	/// Callback functions
+	/// Callback function
 	void (*keymap_callback)(const Arg *);
 	/// Argument to the callback function
 	const Arg arg;
 };
 
-/// @brief Represents a layout
+/// @brief Represents a layout on a Monitor
 typedef struct Layout Layout;
 struct Layout {
 	/// Layout symbol thats displayed in the bar
@@ -184,21 +171,25 @@ struct Monitor {
 	const Layout *layouts[MAX_LAYOUTS];
 };
 
+/// @brief Constructs a single monitor
+Monitor *Monitor__create(void);
+
+/// @brief Destroys a monitor and frees all memory allocated to it.
+///
+/// @details Also unmaps the bar window and destroys it.
+void Monitor__destroy(Monitor *monitor);
+
+/// @brief Updates the layout symbol, then calls the layout's arrange function
+/// for the given monitor.
+void Monitor__arrange(Monitor *monitor);
+
+/// @brief Update the status bar position for one monitor
+void Monitor__updatebarpos(Monitor *monitor);
+
 /// @brief Sets the layout to master stack for a monitor
 void Monitor__layout_master_stack(Monitor *m);
 
 /// @brief Sets the layout to monocle for a monitor
 void Monitor__layout_monocle(Monitor *m);
-
-/// @brief Window WINDOW_RULES
-typedef struct SlackerWindowRule WindowRule;
-struct SlackerWindowRule {
-	const char *window_class;
-	const char *instance;
-	const char *title;
-	uint32_t tags;
-	int32_t isfloating;
-	int32_t monitor;
-};
 
 #endif // SLACKER_H

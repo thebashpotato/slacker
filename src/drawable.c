@@ -352,7 +352,7 @@ int drw_text(Drw *drw, int32_t x, int32_t y, uint32_t w, uint32_t h,
 		}
 
 		if (render && overflow) {
-			fprintf(stdout, "Recursive call to %s\n", __func__);
+			//fprintf(stdout, "Recursive call to %s\n", __func__);
 			drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...",
 				 invert);
 		}

@@ -1,40 +1,38 @@
 #include "config.h"
 #include "constants.h"
-#include "modifiers.h"
 #include "monitor.h"
 
 // clang-format off
+const uint32_t G_BORDER_PIXEL                  = 1;
+const uint32_t G_SNAP_PIXEL                    = 32;
+const int32_t G_SHOW_BAR                       = 1;
+const int32_t G_TOP_BAR                        = 1;
+const char G_USER_FONT[]                       = "CaskaydiaCove Nerd Font Mono:size=16";
+const char G_DMENU_FONT[]                      = "CaskaydiaCove Nerd Font Mono:size=16";
+const char G_COLORSCHEME_BACKGROUND[]          = "#111216";
+const char G_COLORSCHEME_BORDER[]              = "#6d6d6d";
+const char G_COLORSCHEME_FOREGROUND[]          = "#9e9e9e";
+const char G_COLORSCHEME_SECONDARY[]           = "#f0dada";
+const char G_COLORSCHEME_PRIMARY[]             = "#a32ea7";
+const float G_MASTER_FACTOR                    = 0.55;
+const int32_t G_MASTER_COUNT                   = 1;
+const int32_t G_RESIZE_HINTS                   = 1;
+const int32_t G_LOCK_FULLSCREEN                = 1;
+char G_DMENU_MONITOR[]                         = "0";
+const char *G_DMENU_COMMAND[]                  = {"dmenu_run", "-m", G_DMENU_MONITOR, "-fn", G_DMENU_FONT, "-nb", G_COLORSCHEME_BACKGROUND, "-nf", G_COLORSCHEME_FOREGROUND, "-sb", G_COLORSCHEME_PRIMARY, "-sf", G_COLORSCHEME_SECONDARY, NULL};
+const char *G_TERMINAL_COMMAND[]               = {"konsole", NULL};
 
-const uint32_t GLOBAL_BORDER_PIXEL                  = 1;
-const uint32_t GLOBAL_SNAP_PIXEL                    = 32;
-const int32_t GLOBAL_SHOW_BAR                       = 1;
-const int32_t GLOBAL_TOP_BAR                        = 1;
-const char GLOBAL_USER_FONT[]                       = "CaskaydiaCove Nerd Font Mono:size=16";
-const char GLOBAL_DMENU_FONT[]                      = "CaskaydiaCove Nerd Font Mono:size=16";
-const char GLOBAL_COLORSCHEME_BACKGROUND[]          = "#111216";
-const char GLOBAL_COLORSCHEME_BORDER[]              = "#6d6d6d";
-const char GLOBAL_COLORSCHEME_FOREGROUND[]          = "#9e9e9e";
-const char GLOBAL_COLORSCHEME_SECONDARY[]           = "#f0dada";
-const char GLOBAL_COLORSCHEME_PRIMARY[]             = "#a32ea7";
-const float GLOBAL_MASTER_FACTOR                    = 0.55;
-const int32_t GLOBAL_MASTER_COUNT                   = 1;
-const int32_t GLOBAL_RESIZE_HINTS                   = 1;
-const int32_t GLOBAL_LOCK_FULLSCREEN                = 1;
-char GLOBAL_DMENU_MONITOR[]                         = "0";
-const char *GLOBAL_DMENU_COMMAND[]                  = {"dmenu_run", "-m", GLOBAL_DMENU_MONITOR, "-fn", GLOBAL_DMENU_FONT, "-nb", GLOBAL_COLORSCHEME_BACKGROUND, "-nf", GLOBAL_COLORSCHEME_FOREGROUND, "-sb", GLOBAL_COLORSCHEME_PRIMARY, "-sf", GLOBAL_COLORSCHEME_SECONDARY, NULL};
-const char *GLOBAL_TERMINAL_COMMAND[]               = {"konsole", NULL};
-
-const char *GLOBAL_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS] = {
+const char *G_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS] = {
     // ================================================================================================
     // |                        fg                        bg                          border          |
     // ================================================================================================
-    [SlackerColorscheme_Norm]    = { GLOBAL_COLORSCHEME_FOREGROUND, GLOBAL_COLORSCHEME_BACKGROUND,   GLOBAL_COLORSCHEME_BORDER },
-    [SlackerColorscheme_Sel]     = { GLOBAL_COLORSCHEME_SECONDARY, GLOBAL_COLORSCHEME_PRIMARY,    GLOBAL_COLORSCHEME_PRIMARY  },
+    [SlackerColorscheme_Norm]    = { G_COLORSCHEME_FOREGROUND, G_COLORSCHEME_BACKGROUND,   G_COLORSCHEME_BORDER },
+    [SlackerColorscheme_Sel]     = { G_COLORSCHEME_SECONDARY, G_COLORSCHEME_PRIMARY,    G_COLORSCHEME_PRIMARY  },
 };
 
-const char *GLOBAL_TAGS[] = { "", "", "", "", "", "", "", "", "" };
+const char *G_TAGS[] = { "", "", "", "", "", "", "", "", "" };
 
-const WindowRule GLOBAL_WINDOW_RULES[] = {
+const WindowRule G_WINDOW_RULES[] = {
     // ================================================================================================
     // | Class Name   Instance        Title           Tags            Mask     isfloating   monitor   |
     // ================================================================================================
@@ -42,7 +40,7 @@ const WindowRule GLOBAL_WINDOW_RULES[] = {
     { "Firefox",     NULL,          NULL,           (1 << 8),       0,      -1 },
 };
 
-const Layout GLOBAL_LAYOUTS[] = {
+const Layout G_LAYOUTS[] = {
     // =================================
     // | Symbol       Arrange function |
     // =================================
@@ -51,34 +49,34 @@ const Layout GLOBAL_LAYOUTS[] = {
     { "[M]",         Monitor__layout_monocle         }, // monocle layout
 };
 
-const KeyMap GLOBAL_KEYBINDINGS[MAX_KEY_BINDINGS] = {
+const KeyMap G_KEYBINDINGS[MAX_KEY_BINDINGS] = {
     // =============================================================================================
     // | Modifier            Key             Function                               Argument       |
     // =============================================================================================
-    { MODKEY,                XK_p,           Slacker__spawn,                    {.v = GLOBAL_DMENU_COMMAND}         },
-    { MODKEY | ShiftMask,    XK_Return,      Slacker__spawn,                    {.v = GLOBAL_TERMINAL_COMMAND}      },
-    { MODKEY,                XK_b,           Slacker__togglebar,                {0}                                 },
-    { MODKEY,                XK_j,           Slacker__focus_stack,               {.i = +1}                           },
-    { MODKEY,                XK_k,           Slacker__focus_stack,               {.i = -1}                           },
-    { MODKEY,                XK_i,           Slacker__increment_n_master,       {.i = +1}                           },
-    { MODKEY,                XK_d,           Slacker__increment_n_master,       {.i = -1}                           },
-    { MODKEY,                XK_h,           Slacker__setmfact,                 {.f = -0.05}                        },
-    { MODKEY,                XK_l,           Slacker__setmfact,                 {.f = +0.05}                        },
-    { MODKEY,                XK_Return,      Slacker__zoom,                              {0}                                 },
-    { MODKEY,                XK_Tab,         Slacker__view,                              {0}                                 },
-    { MODKEY | ShiftMask,    XK_c,           Slacker__kill_client,              {0}                                 },
-    { MODKEY,                XK_t,           Slacker__setlayout,                {.v = &GLOBAL_LAYOUTS[0]}           },
-    { MODKEY,                XK_f,           Slacker__setlayout,                {.v = &GLOBAL_LAYOUTS[1]}           },
-    { MODKEY,                XK_m,           Slacker__setlayout,                {.v = &GLOBAL_LAYOUTS[2]}           },
-    { MODKEY,                XK_space,       Slacker__setlayout,                {0}                                 },
-    { MODKEY | ShiftMask,    XK_space,       Slacker__togglefloating,           {0}                                 },
-    { MODKEY,                XK_0,           Slacker__view,                              {.ui = ~0}                          },
-    { MODKEY | ShiftMask,    XK_0,           Slacker__tag,                      {.ui = ~0}                          },
-    { MODKEY,                XK_comma,       Slacker__focus_monitor,            {.i = -1}                           },
-    { MODKEY,                XK_period,      Slacker__focus_monitor,            {.i = +1}                           },
-    { MODKEY | ShiftMask,    XK_comma,       Slacker__tagmon,                   {.i = -1}                           },
-    { MODKEY | ShiftMask,    XK_period,      Slacker__tagmon,                   {.i = +1}                           },
-    { MODKEY | ShiftMask,    XK_q,           Slacker__quit,                     {0}                                 },
+    { MODKEY,                XK_p,           Slacker__spawn,                    {.v = G_DMENU_COMMAND}          },
+    { MODKEY | ShiftMask,    XK_Return,      Slacker__spawn,                    {.v = G_TERMINAL_COMMAND}       },
+    { MODKEY,                XK_b,           Slacker__togglebar,                {0}                             },
+    { MODKEY,                XK_j,           Slacker__focus_stack,              {.i = +1}                       },
+    { MODKEY,                XK_k,           Slacker__focus_stack,              {.i = -1}                       },
+    { MODKEY,                XK_i,           Slacker__increment_n_master,       {.i = +1}                       },
+    { MODKEY,                XK_d,           Slacker__increment_n_master,       {.i = -1}                       },
+    { MODKEY,                XK_h,           Slacker__setmfact,                 {.f = -0.05}                    },
+    { MODKEY,                XK_l,           Slacker__setmfact,                 {.f = +0.05}                    },
+    { MODKEY,                XK_Return,      Slacker__zoom,                     {0}                             },
+    { MODKEY,                XK_Tab,         Slacker__view,                     {0}                             },
+    { MODKEY | ShiftMask,    XK_c,           Slacker__kill_client,              {0}                             },
+    { MODKEY,                XK_t,           Slacker__setlayout,                {.v = &G_LAYOUTS[0]}            },
+    { MODKEY,                XK_f,           Slacker__setlayout,                {.v = &G_LAYOUTS[1]}            },
+    { MODKEY,                XK_m,           Slacker__setlayout,                {.v = &G_LAYOUTS[2]}            },
+    { MODKEY,                XK_space,       Slacker__setlayout,                {0}                             },
+    { MODKEY | ShiftMask,    XK_space,       Slacker__togglefloating,           {0}                             },
+    { MODKEY,                XK_0,           Slacker__view,                     {.ui = ~0}                      },
+    { MODKEY | ShiftMask,    XK_0,           Slacker__tag,                      {.ui = ~0}                      },
+    { MODKEY,                XK_comma,       Slacker__focus_monitor,            {.i = -1}                       },
+    { MODKEY,                XK_period,      Slacker__focus_monitor,            {.i = +1}                       },
+    { MODKEY | ShiftMask,    XK_comma,       Slacker__tagmon,                   {.i = -1}                       },
+    { MODKEY | ShiftMask,    XK_period,      Slacker__tagmon,                   {.i = +1}                       },
+    { MODKEY | ShiftMask,    XK_q,           Slacker__quit,                     {0}                             },
     TAGKEYS(XK_1, 0),
     TAGKEYS(XK_2, 1),
     TAGKEYS(XK_3, 2),
@@ -90,21 +88,21 @@ const KeyMap GLOBAL_KEYBINDINGS[MAX_KEY_BINDINGS] = {
     TAGKEYS(XK_9, 8),
 };
 
-const Button GLOBAL_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS] = {
+const Button G_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS] = {
     // ====================================================================================================================
     // | Click                      EventMask           Button          Function                            Argument      |
     // ====================================================================================================================
-    { SlackerClick_LtSymbol,           0,              Button1,        Slacker__setlayout,                  {0}                                 },
-    { SlackerClick_LtSymbol,           0,              Button3,        Slacker__setlayout,                  {.v = &GLOBAL_LAYOUTS[2]}           },
-    { SlackerClick_WinTitle,           0,              Button2,        Slacker__zoom,                                {0}                                 },
-    { SlackerClick_StatusText,         0,              Button2,        Slacker__spawn,                      {.v = GLOBAL_TERMINAL_COMMAND}      },
-    { SlackerClick_ClientWin,          MODKEY,         Button1,        Slacker__move_with_mouse,            {0}                                 },
-    { SlackerClick_ClientWin,          MODKEY,         Button2,        Slacker__togglefloating,                      {0}                                 },
-    { SlackerClick_ClientWin,          MODKEY,         Button3,        Slacker__resize_client_with_mouse,   {0}                                 },
-    { SlackerClick_TagBar,             0,              Button1,        Slacker__view,                                {0}                                 },
-    { SlackerClick_TagBar,             0,              Button3,        Slacker__toggleview,                          {0}                                 },
-    { SlackerClick_TagBar,             MODKEY,         Button1,        Slacker__tag,                        {0}                                 },
-    { SlackerClick_TagBar,             MODKEY,         Button3,        Slacker__toggletag,                           {0}                                 },
+    { SlackerClick_LtSymbol,           0,              Button1,        Slacker__setlayout,                  {0}                         },
+    { SlackerClick_LtSymbol,           0,              Button3,        Slacker__setlayout,                  {.v = &G_LAYOUTS[2]}        },
+    { SlackerClick_WinTitle,           0,              Button2,        Slacker__zoom,                       {0}                         },
+    { SlackerClick_StatusText,         0,              Button2,        Slacker__spawn,                      {.v = G_TERMINAL_COMMAND}   },
+    { SlackerClick_ClientWin,          MODKEY,         Button1,        Slacker__move_with_mouse,            {0}                         },
+    { SlackerClick_ClientWin,          MODKEY,         Button2,        Slacker__togglefloating,             {0}                         },
+    { SlackerClick_ClientWin,          MODKEY,         Button3,        Slacker__resize_client_with_mouse,   {0}                         },
+    { SlackerClick_TagBar,             0,              Button1,        Slacker__view,                       {0}                         },
+    { SlackerClick_TagBar,             0,              Button3,        Slacker__toggleview,                 {0}                         },
+    { SlackerClick_TagBar,             MODKEY,         Button1,        Slacker__tag,                        {0}                         },
+    { SlackerClick_TagBar,             MODKEY,         Button3,        Slacker__toggletag,                  {0}                         },
 };
 
 // clang-format on

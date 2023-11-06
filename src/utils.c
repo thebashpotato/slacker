@@ -7,6 +7,8 @@
 // Slacker Headers
 #include "utils.h"
 
+const char CLIENT_WINDOW_BROKEN[] = "broken";
+
 void die(const char *fmt, ...)
 {
 	va_list ap;

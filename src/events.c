@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "events.h"
 
-void event_loop(XEvent *event)
+void Slacker__event_loop(XEvent *event)
 {
 	switch (event->type) {
 	case ButtonPress:

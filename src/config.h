@@ -1,58 +1,67 @@
-#ifndef SLACKER_CONFIG_H
-#define SLACKER_CONFIG_H
+#ifndef SWM_CONFIG_H
+#define SWM_CONFIG_H
 
 // Standard Libraries
 #include <stdint.h>
 
 // Slacker Headers
+#include "swm.h"
+#include "utils.h"
 #include "constants.h"
-#include "modifiers.h"
 #include "monitor.h"
 
 /// @brief Appearance control variables
-extern const uint32_t GLOBAL_BORDER_PIXEL;
-extern const uint32_t GLOBAL_SNAP_PIXEL;
-extern const int32_t GLOBAL_SHOW_BAR;
-extern const int32_t GLOBAL_TOP_BAR;
-extern const char GLOBAL_USER_FONT[];
-extern const char GLOBAL_DMENU_FONT[];
-extern const char GLOBAL_COLORSCHEME_BACKGROUND[];
-extern const char GLOBAL_COLORSCHEME_BORDER[];
-extern const char GLOBAL_COLORSCHEME_FOREGROUND[];
-extern const char GLOBAL_COLORSCHEME_SECONDARY[];
-extern const char GLOBAL_COLORSCHEME_PRIMARY[];
+extern const uint32_t G_BORDER_PIXEL;
+extern const uint32_t G_SNAP_PIXEL;
+extern const int32_t G_SHOW_BAR;
+extern const int32_t G_TOP_BAR;
+extern const char G_USER_FONT[];
+extern const char G_DMENU_FONT[];
+extern const char G_COLORSCHEME_BACKGROUND[];
+extern const char G_COLORSCHEME_BORDER[];
+extern const char G_COLORSCHEME_FOREGROUND[];
+extern const char G_COLORSCHEME_SECONDARY[];
+extern const char G_COLORSCHEME_PRIMARY[];
 
 /// @brief Layout control variables
-extern const float GLOBAL_MASTER_FACTOR;
-extern const int32_t GLOBAL_MASTER_COUNT;
-extern const int32_t GLOBAL_RESIZE_HINTS;
-extern const int32_t GLOBAL_LOCK_FULLSCREEN;
-extern const Layout GLOBAL_LAYOUTS[MAX_LAYOUTS];
+extern const float G_MASTER_FACTOR;
+extern const int32_t G_MASTER_COUNT;
+extern const int32_t G_RESIZE_HINTS;
+extern const int32_t G_LOCK_FULLSCREEN;
+extern const Layout G_LAYOUTS[MAX_LAYOUTS];
 
 /// @brief Foreground, Background and Border colors
-extern const char *GLOBAL_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS];
+extern const char *G_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS];
 
 /// @brief Tags which are displayed in the bar
 /// @details If you want more than 9 tags, you will need to change the
 /// MAX_TAGS constant in slacker_constants.h to match the number of tags you want.
-extern const char *GLOBAL_TAGS[MAX_TAGS];
+extern const char *G_TAGS[MAX_TAGS];
 
 /// @brief Add rules for applications which need to be managed in a specific way.
 /// @details The rules are matched against the window class name, role, and title.
 /// which the user can obtain using the xprop program.
-extern const WindowRule GLOBAL_WINDOW_RULES[MAX_WINDOW_RULES];
+extern const WindowRule G_WINDOW_RULES[MAX_WINDOW_RULES];
 
 /// @brief Terminal and command launcher definitions
-extern char GLOBAL_DMENU_MONITOR[2];
-extern const char *GLOBAL_DMENU_COMMAND[];
-extern const char *GLOBAL_TERMINAL_COMMAND[];
+extern char G_DMENU_MONITOR[2];
+extern const char *G_DMENU_COMMAND[];
+extern const char *G_TERMINAL_COMMAND[];
+
+/// @brief Custom KeyMap Bindings
+extern const KeyMap G_KEYBINDINGS[MAX_KEY_BINDINGS];
+
+/// @brief button definitions
+///
+/// @details click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin
+extern const Button G_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS];
 
 /// @brief KeyMap Definitions
 #define MODKEY Mod1Mask
 
 /// @brief Helper for defining the tag key bindings
 #define TAGKEYS(KEY, TAG)                                                      \
-	{ MODKEY, KEY, Slacker__view, { .ui = 1 << TAG } },                             \
+	{ MODKEY, KEY, Slacker__view, { .ui = 1 << TAG } },                    \
 		{ MODKEY | ControlMask,                                        \
 		  KEY,                                                         \
 		  Slacker__toggleview,                                         \
@@ -74,12 +83,8 @@ extern const char *GLOBAL_TERMINAL_COMMAND[];
 		}                                  \
 	}
 
-/// @brief Custom KeyMap Bindings
-extern const KeyMap GLOBAL_KEYBINDINGS[MAX_KEY_BINDINGS];
-
-/// @brief button definitions
-///
-/// @details click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin
-extern const Button GLOBAL_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS];
+struct NumTags {
+	uint32_t limitexceeded[LENGTH(G_TAGS) > 31 ? -1 : 1];
+};
 
 #endif // SLACKER_CONFIG_H

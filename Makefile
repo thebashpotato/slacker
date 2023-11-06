@@ -1,7 +1,6 @@
-# slacker - Fork of the orignal Dynamic Tiling Window Manager from suckless.org
-# See LICENSE file for copyright and license details.
+# Slacker Window Manager. Inspired by the Dynamic Window Manger
 
-TARGET = slackerwm
+TARGET = swm
 SRC_DIR = src
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/obj

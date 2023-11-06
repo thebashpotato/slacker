@@ -1,4 +1,4 @@
-# slacker version
+# swm version
 VERSION = 1.0.0
 
 # Customize below to fit your system
@@ -24,7 +24,7 @@ LIBS = -L${X11LIB} -lX11 ${FREETYPELIBS}
 
 # flags
 DEBUG ?= 0
-ARGUMENT_FLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" -DDEBUG=$(DEBUG)
+ARGUMENT_FLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"$(VERSION)\" -DDEBUG=$(DEBUG)
 
 ifeq ($(DEBUG), 0)
 	CFLAGS = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${ARGUMENT_FLAGS}

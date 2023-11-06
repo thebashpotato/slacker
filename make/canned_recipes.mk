@@ -21,7 +21,7 @@ define _embed =
 
 	echo "Press Ctrl+Shift to grab mouse and keyboard events in the Xephyr window, and Ctrl+Shift again to release"
 
-	Xephyr :1 -ac -br -noreset -screen 1024x768 &
+	Xephyr :1 -ac -br -noreset -screen 1200x800 &
 	XEPHYR_PID=$!
 	sleep 1
 	DISPLAY=:1 ./$(BIN_DIR)/$(TARGET) &

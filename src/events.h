@@ -1,5 +1,5 @@
-#ifndef SLACKER_EVENT_HANDLERS_H
-#define SLACKER_EVENT_HANDLERS_H
+#ifndef SWM_EVENTS_H
+#define SWM_EVENTS_H
 
 // X11 Libraries
 #include <X11/Xlib.h>
@@ -78,26 +78,5 @@ void event_propertynotify(XEvent *event);
 ///
 /// @param `event` The X11 event to handle
 void event_unmapnotify(XEvent *event);
-
-/// @brief Handles matching on and dispatching X11 events
-///
-/// @details Slacker supports the following X11 events:
-/// - ButtonPress
-/// - ClientMessage
-/// - ConfigureRequest
-/// - ConfigureNotify
-/// - DestroyNotify
-/// - EnterNotify
-/// - Expose
-/// - FocusIn
-/// - KeyPress
-/// - MappingNotify
-/// - MapRequest
-/// - MotionNotify
-/// - PropertyNotify
-/// - UnmapNotify
-///
-/// @param `event` The X11 event to handle
-void event_loop(XEvent *event);
 
 #endif
