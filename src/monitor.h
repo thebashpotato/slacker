@@ -14,122 +14,21 @@
 #include "constants.h"
 #include "client.h"
 
-////////////////////
-/// Enumerations
-////////////////////
-
-// Color Schemes
-enum SlackerColorscheme {
-	SlackerColorscheme_Norm,
-	SlackerColorscheme_Sel,
-};
-
-// Cursor
-enum SlackerCursorState {
-	SlackerCursorState_Normal,
-	SlackerCursorState_Resize,
-	SlackerCursorState_Move,
-	SlackerCursorState_Last
-};
-
-// EWMH atoms
-// TODO: Link to docs
-enum SlackerEWMHAtom {
-	SlackerEWMHAtom_NetSupported,
-	SlackerEWMHAtom_NetWMName,
-	SlackerEWMHAtom_NetWMState,
-	SlackerEWMHAtom_NetWMCheck,
-	SlackerEWMHAtom_NetWMFullscreen,
-	SlackerEWMHAtom_NetActiveWindow,
-	SlackerEWMHAtom_NetWMWindowType,
-	SlackerEWMHAtom_NetWMWindowTypeDialog,
-	SlackerEWMHAtom_NetClientList,
-	SlackerEWMHAtom_NetLast
-};
-
-// Default Atoms
-// TODO: Link to docs
-enum SlackerDefaultAtom {
-	SlackerDefaultAtom_WMProtocols,
-	SlackerDefaultAtom_WMDelete,
-	SlackerDefaultAtom_WMState,
-	SlackerDefaultAtom_WMTakeFocus,
-	SlackerDefaultAtom_WMLast
-};
-
-// Clicks
-enum SlackerClick {
-	SlackerClick_TagBar,
-	SlackerClick_LtSymbol,
-	SlackerClick_StatusText,
-	SlackerClick_WinTitle,
-	SlackerClick_ClientWin,
-	SlackerClick_RootWin,
-	SlackerClick_Last
-};
-
-//////////////////////////
-/// Data Structures
-//////////////////////////
-
-/// @brief Window WINDOW_RULES
-typedef struct SlackerWindowRule WindowRule;
-struct SlackerWindowRule {
-	const char *window_class;
-	const char *instance;
-	const char *title;
-	uint32_t tags;
-	int32_t isfloating;
-	int32_t monitor;
-};
-
-typedef union Arg Arg;
-
-/// @brief Represents an argument to a function
-union Arg {
-	int32_t i;
-	uint32_t ui;
-	float f;
-	const void *v;
-};
-
-typedef struct Button Button;
-
-/// @brief Represents a button
-struct Button {
-	// SlackerClick enum
-	uint32_t click;
-	// Event mask
-	uint32_t mask;
-	// X11 button number
-	uint32_t button;
-	// Callback function to handle the button press
-	void (*button_handler_callback)(const Arg *arg);
-	// Argument to the callback function
-	const Arg arg;
-};
-
-/// @brief A hotkey combination to be bound to a function
-typedef struct KeyMap KeyMap;
-struct KeyMap {
-	/// Modifier key
-	uint32_t mod;
-	/// X11 keysym representation of the key
-	KeySym keysym;
-	/// Callback function
-	void (*keymap_callback)(const Arg *);
-	/// Argument to the callback function
-	const Arg arg;
-};
+typedef struct Layout Layout;
+typedef void (*LayoutHandler)(Monitor *);
 
 /// @brief Represents a layout on a Monitor
-typedef struct Layout Layout;
 struct Layout {
 	/// Layout symbol thats displayed in the bar
 	const char *symbol;
 	/// Layout callback function
-	void (*layout_arrange_callback)(Monitor *);
+	LayoutHandler handler;
 };
+
+/// @brief Helper macro to detect geometrical intersections between two windows on a monitor
+#define INTERSECT(x, y, w, h, m)                                         \
+	(MAX(0, MIN((x) + (w), (m)->wx + (m)->ww) - MAX((x), (m)->wx)) * \
+	 MAX(0, MIN((y) + (h), (m)->wy + (m)->wh) - MAX((y), (m)->wy)))
 
 /// @brief Represents a physical monitor
 struct Monitor {
@@ -148,7 +47,7 @@ struct Monitor {
 	/// Window area
 	int32_t wx, wy, ww, wh;
 	/// Selected tags
-	uint32_t seltags;
+	uint32_t selected_tags;
 	/// Selected layout
 	uint32_t selected_layout;
 	/// Tag set
@@ -172,16 +71,19 @@ struct Monitor {
 };
 
 /// @brief Constructs a single monitor
-Monitor *Monitor__create(void);
+Monitor *Monitor__new(void);
 
 /// @brief Destroys a monitor and frees all memory allocated to it.
 ///
 /// @details Also unmaps the bar window and destroys it.
-void Monitor__destroy(Monitor *monitor);
+void Monitor__delete(Monitor *monitor);
 
 /// @brief Updates the layout symbol, then calls the layout's arrange function
 /// for the given monitor.
 void Monitor__arrange(Monitor *monitor);
+
+/// @brief Get total number of clines on this monitor
+int32_t Monitor__get_num_clients(Monitor *monitor);
 
 /// @brief Update the status bar position for one monitor
 void Monitor__updatebarpos(Monitor *monitor);

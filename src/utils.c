@@ -3,9 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 
 // Slacker Headers
 #include "utils.h"
+#include "error.h"
 
 const char CLIENT_WINDOW_BROKEN[] = "broken";
 
@@ -35,4 +37,19 @@ void *ecalloc(size_t nmemb, size_t size)
 		die("calloc:");
 	}
 	return p;
+}
+
+void clean_environment(void)
+{
+	struct sigaction sa;
+	// Do not transform children into zombies when they terminate
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_NOCLDSTOP | SA_NOCLDWAIT | SA_RESTART;
+	sa.sa_handler = SIG_IGN;
+	sigaction(SIGCHLD, &sa, NULL);
+
+	// Clean up any zombies (inherited from .xinitrc etc) immediately
+	while (waitpid(-1, NULL, WNOHANG) > 0) {
+		;
+	}
 }

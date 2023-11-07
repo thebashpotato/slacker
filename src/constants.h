@@ -6,6 +6,7 @@
 #define MAX_COLOR_SCHEMES 2
 #define MAX_COLOR_VARIANTS 3
 #define MAX_TAGS 9
+#define MAX_SUPPORTED_TAGS 31 // Cannot exceed this
 #define MAX_TAG_SETS 3
 #define MAX_WINDOW_RULES 20
 #define MAX_LAYOUTS 3

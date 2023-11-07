@@ -2,7 +2,7 @@
 #include "monitor.h"
 #include "utils.h"
 
-Monitor *Monitor__create(void)
+Monitor *Monitor__new(void)
 {
 	Monitor *m;
 
@@ -18,22 +18,22 @@ Monitor *Monitor__create(void)
 	return m;
 }
 
-void Monitor__destroy(Monitor *monitor)
+void Monitor__delete(Monitor *monitor)
 {
 	Monitor *temp_mon = NULL;
 
-	if (monitor == g_slacker.monitor_list) {
-		g_slacker.monitor_list = g_slacker.monitor_list->next;
+	if (monitor == g_swm.monitor_list) {
+		g_swm.monitor_list = g_swm.monitor_list->next;
 	} else {
-		for (temp_mon = g_slacker.monitor_list;
+		for (temp_mon = g_swm.monitor_list;
 		     temp_mon && (temp_mon->next != monitor);
 		     temp_mon = temp_mon->next) {
 			;
 		}
 		temp_mon->next = monitor->next;
 	}
-	XUnmapWindow(g_slacker.display, monitor->barwin);
-	XDestroyWindow(g_slacker.display, monitor->barwin);
+	XUnmapWindow(g_swm.xconn, monitor->barwin);
+	XDestroyWindow(g_swm.xconn, monitor->barwin);
 	free(monitor);
 }
 
@@ -43,24 +43,28 @@ void Monitor__arrange(Monitor *monitor)
 		monitor->layouts[monitor->selected_layout]->symbol,
 		sizeof(monitor->layout_symbol));
 
-	if (monitor->layouts[monitor->selected_layout]->layout_arrange_callback) {
-		monitor->layouts[monitor->selected_layout]
-			->layout_arrange_callback(monitor);
+	if (monitor->layouts[monitor->selected_layout]->handler) {
+		monitor->layouts[monitor->selected_layout]->handler(monitor);
 	}
+}
+
+int32_t Monitor__get_num_clients(Monitor *monitor)
+{
+	uint32_t n = 0;
+	Client *c = NULL;
+	// collect number of visible clients on this monitor.
+	for (c = monitor->client_list; c; c = c->next) {
+		if (ISVISIBLE(c)) {
+			n++;
+		}
+	}
+	return n;
 }
 
 void Monitor__layout_monocle(Monitor *monitor)
 {
-	uint32_t number_of_clients = 0;
 	Client *temp_client = NULL;
-
-	// collect number of visible clients on this monitor.
-	for (temp_client = monitor->client_list; temp_client;
-	     temp_client = temp_client->next) {
-		if (ISVISIBLE(temp_client)) {
-			number_of_clients++;
-		}
-	}
+	uint32_t number_of_clients = Monitor__get_num_clients(monitor);
 
 	// If we have clients, override the layout symbol in the bar.
 	if (number_of_clients > 0) {
@@ -137,13 +141,12 @@ void Monitor__updatebarpos(Monitor *monitor)
 	monitor->wy = monitor->my;
 	monitor->wh = monitor->mh;
 	if (monitor->showbar) {
-		monitor->wh -= g_slacker.bar_height;
+		monitor->wh -= g_swm.bar_height;
 		monitor->by = monitor->topbar ? monitor->wy :
 						monitor->wy + monitor->wh;
-		monitor->wy = monitor->topbar ?
-				      monitor->wy + g_slacker.bar_height :
-				      monitor->wy;
+		monitor->wy = monitor->topbar ? monitor->wy + g_swm.bar_height :
+						monitor->wy;
 	} else {
-		monitor->by = -g_slacker.bar_height;
+		monitor->by = -g_swm.bar_height;
 	}
 }

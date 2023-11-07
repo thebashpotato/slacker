@@ -1,8 +1,74 @@
 
 #include "client.h"
+#include "config.h"
 #include "monitor.h"
 #include "utils.h"
 #include "swm.h"
+#include <X11/Xlib.h>
+#include <stdio.h>
+#include <string.h>
+
+/// @brief Allows a client to log itself to stdout
+///
+/// @param `client` The client to log: client->log(client)
+static void Client__log(Client *this)
+{
+	if (DEBUG == 1) {
+		fprintf(stdout, "\nClient Info\n");
+		fprintf(stdout, "Name: %s:%li\n", this->name, this->win);
+		fprintf(stdout, "X: %d, Y: %i\n", this->x, this->y);
+		fprintf(stdout, "W: %d, H: %i\n", this->w, this->h);
+		fprintf(stdout, "Tag(s): %d\n\n", this->tags);
+	}
+}
+
+Client *Client__new(Window w_id, XWindowAttributes *wa, Monitor *monitor)
+{
+	Client *c = ecalloc(1, sizeof(Client));
+	strcpy(c->name, "");
+	c->mina = 0.0;
+	c->maxa = 0.0;
+	c->x = c->oldx = wa->x;
+	c->y = c->oldy = wa->y;
+	c->w = c->oldw = wa->width;
+	c->h = c->oldh = wa->height;
+	c->oldbw = wa->border_width;
+	c->bw = G_BORDER_PIXEL;
+	c->tags = 0;
+	c->isfixed = 0;
+	c->isfloating = 0;
+	c->isurgent = 0;
+	c->neverfocus = 0;
+	c->oldstate = 0;
+	c->isfullscreen = 0;
+	c->next = NULL;
+	c->stack_next = NULL;
+	c->mon = monitor;
+	c->win = w_id;
+	c->log = Client__log;
+
+	if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww) {
+		c->x = c->mon->wx + c->mon->ww - WIDTH(c);
+	}
+
+	if (c->y + HEIGHT(c) > (c->mon->wy + c->mon->wh)) {
+		c->y = c->mon->wy + c->mon->wh - HEIGHT(c);
+	}
+
+	c->x = MAX(c->x, c->mon->wx);
+	c->y = MAX(c->y, c->mon->wy);
+
+	return c;
+}
+
+void Client__delete(Client *client)
+{
+	if (client) {
+		Client__detach(client);
+		Client__detach_from_stack(client);
+		free(client);
+	}
+}
 
 void Client__attach(Client *client)
 {
@@ -16,12 +82,12 @@ void Client__attach_to_stack(Client *client)
 	client->mon->client_stack = client;
 }
 
-void Client__configure(Display *display, Client *client)
+void Client__configure(Display *xconn, Client *client)
 {
 	XConfigureEvent ce;
 
 	ce.type = ConfigureNotify;
-	ce.display = display;
+	ce.display = xconn;
 	ce.event = client->win;
 	ce.window = client->win;
 	ce.x = client->x;
@@ -31,7 +97,7 @@ void Client__configure(Display *display, Client *client)
 	ce.border_width = client->bw;
 	ce.above = None;
 	ce.override_redirect = False;
-	XSendEvent(display, client->win, False, StructureNotifyMask,
+	XSendEvent(xconn, client->win, False, StructureNotifyMask,
 		   (XEvent *)&ce);
 }
 
@@ -79,15 +145,16 @@ void Client__pop(Client *client)
 {
 	Client__detach(client);
 	Client__attach(client);
-	Slacker__focus(client);
-	Slacker__arrange_monitors(client->mon);
+	Swm__focus(client);
+	Swm__arrange_monitors(client->mon);
 }
 
 void Client__resize(Client *client, int x, int y, int w, int h, int interact)
 {
-	if (Slacker__applysizehints(client, &x, &y, &w, &h, interact)) {
-		Slacker__resize_client(client, x, y, w, h);
+	if (Swm__applysizehints(client, &x, &y, &w, &h, interact)) {
+		Swm__resize_client(client, x, y, w, h);
 	}
+	client->log(client);
 }
 
 void Client__send_to_monitor(Client *client, Monitor *target_monitor)
@@ -98,19 +165,19 @@ void Client__send_to_monitor(Client *client, Monitor *target_monitor)
 	}
 
 	// Unfocus the client, detach it from the current monitor list and monitor stack.
-	Slacker__unfocus(client, 1);
+	Swm__unfocus(client, 1);
 	Client__detach(client);
 	Client__detach_from_stack(client);
 	// Update the clients monitor with the new monitor it will be on.
 	client->mon = target_monitor;
 	// Assign tags of target monitor
-	client->tags = target_monitor->tagset[target_monitor->seltags];
+	client->tags = target_monitor->tagset[target_monitor->selected_tags];
 	// Attach the client to the new monitor list and stack, then focus,
 	// and arrange all monitors
 	Client__attach(client);
 	Client__attach_to_stack(client);
-	Slacker__focus(NULL);
-	Slacker__arrange_monitors(NULL);
+	Swm__focus(NULL);
+	Swm__arrange_monitors(NULL);
 }
 
 void Client__update_size_hints(Display *display, Client *client)

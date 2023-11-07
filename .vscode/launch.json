@@ -4,8 +4,8 @@
         {
             "type": "lldb",
             "request": "attach",
-            "name": "Attach to slacker process",
-            "program": "${workspaceFolder}/build/bin/slacker",
+            "name": "Attach to swm process",
+            "program": "${workspaceFolder}/build/bin/swm",
             "processId": "${command:pickProcess}",
             "MIMode": "lldb",
             "setupCommands": [

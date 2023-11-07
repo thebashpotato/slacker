@@ -5,10 +5,11 @@
 #include <stdint.h>
 
 // Slacker Headers
-#include "swm.h"
-#include "utils.h"
 #include "constants.h"
+#include "common.h"
 #include "monitor.h"
+#include "modifiers.h"
+#include "swm.h"
 
 /// @brief Appearance control variables
 extern const uint32_t G_BORDER_PIXEL;
@@ -41,7 +42,7 @@ extern const char *G_TAGS[MAX_TAGS];
 /// @brief Add rules for applications which need to be managed in a specific way.
 /// @details The rules are matched against the window class name, role, and title.
 /// which the user can obtain using the xprop program.
-extern const WindowRule G_WINDOW_RULES[MAX_WINDOW_RULES];
+extern const SlackerWindowRule G_WINDOW_RULES[MAX_WINDOW_RULES];
 
 /// @brief Terminal and command launcher definitions
 extern char G_DMENU_MONITOR[2];
@@ -60,18 +61,18 @@ extern const Button G_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS];
 #define MODKEY Mod1Mask
 
 /// @brief Helper for defining the tag key bindings
-#define TAGKEYS(KEY, TAG)                                                      \
-	{ MODKEY, KEY, Slacker__view, { .ui = 1 << TAG } },                    \
-		{ MODKEY | ControlMask,                                        \
-		  KEY,                                                         \
-		  Slacker__toggleview,                                         \
-		  { .ui = 1 << TAG } },                                        \
-		{ MODKEY | ShiftMask, KEY, Slacker__tag, { .ui = 1 << TAG } }, \
-	{                                                                      \
-		MODKEY | ControlMask | ShiftMask, KEY, Slacker__toggletag,     \
-		{                                                              \
-			.ui = 1 << TAG                                         \
-		}                                                              \
+#define TAGKEYS(KEY, TAG)                                                  \
+	{ MODKEY, KEY, Swm__view, { .ui = 1 << TAG } },                    \
+		{ MODKEY | ControlMask,                                    \
+		  KEY,                                                     \
+		  Swm__toggleview,                                         \
+		  { .ui = 1 << TAG } },                                    \
+		{ MODKEY | ShiftMask, KEY, Swm__tag, { .ui = 1 << TAG } }, \
+	{                                                                  \
+		MODKEY | ControlMask | ShiftMask, KEY, Swm__toggletag,     \
+		{                                                          \
+			.ui = 1 << TAG                                     \
+		}                                                          \
 	}
 
 /// @brief helper for spawning shell commands in the pre dwm-5.0 fashion
@@ -82,9 +83,5 @@ extern const Button G_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS];
 			"/bin/sh", "-c", cmd, NULL \
 		}                                  \
 	}
-
-struct NumTags {
-	uint32_t limitexceeded[LENGTH(G_TAGS) > 31 ? -1 : 1];
-};
 
 #endif // SLACKER_CONFIG_H
