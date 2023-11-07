@@ -3,13 +3,15 @@
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![C Build](https://github.com/thebashpotato/slacker/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/thebashpotato/slacker/actions/workflows/c-cpp.yml)
 
-An X Tiling Window Manager for GNU/Linux and BSD's.
+An X11 Tiling Window Manager for GNU/Linux and BSD's.
 
 ## Background
 
-> Slacker is a hard fork of the Suckless software's Dwm. Some of the original code and
-> ideas were kept, but it is heavily refactored, cleaned up, and makes an attempt to provide
-> better documentation and explanations.
+> Slacker Window Manager (swm) is a suckless-style X11 non-reparenting window manager.
+> It is an attempt at creating a more structually sound and concise version of Dwm
+> using straight forward C design patterns, refactoring as much spaghetti code as possible,
+> and using explicit naming conventions. It also aims to ship out of the box with
+> key features like a systray, status line etc..
 
 ## Table of Contents
 

@@ -3,7 +3,7 @@
 /// ## Introduction
 ///
 /// 	Swm is an attempt at creating a more structually sound and concise version of dwm
-/// 	using C design patterns, omitting as much spaghetti code as possible, and being explicit as possible.
+/// 	using straight forwward C design patterns, refactoring as much spaghetti code as possible, and using explicit naming conventions.
 ///		Swm does not read a configuration file, but does rely on a configuration library where global variables can be updated.
 /// 	As far as the user is concerned they will still edit global variable values in a C config, its just in a different folder.
 /// 	The shared library approach will offer better code decoupling than the suckless approach, and will allow me to port other tools
