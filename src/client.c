@@ -14,11 +14,11 @@
 static void Client__log(Client *this)
 {
 	if (DEBUG == 1) {
-		fprintf(stdout, "\nClient Info\n");
-		fprintf(stdout, "Name: %s:%li\n", this->name, this->win);
+		fprintf(stdout, "\nClient: %li\n", this->win);
+		fprintf(stdout, "Name: %s\n", this->name);
 		fprintf(stdout, "X: %d, Y: %i\n", this->x, this->y);
 		fprintf(stdout, "W: %d, H: %i\n", this->w, this->h);
-		fprintf(stdout, "Tag(s): %d\n\n", this->tags);
+		fprintf(stdout, "Tag(s): %d\n", this->tags);
 	}
 }
 

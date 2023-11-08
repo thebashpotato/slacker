@@ -32,6 +32,18 @@
 
 Swm g_swm;
 
+/// @brief Allows the ctx to log itself to stdout
+///
+/// @param `ctx` The client to log: client->log(client)
+static void Ctx__log(Ctx *this)
+{
+	if (DEBUG == 1) {
+		fprintf(stdout, "\nScreen id: %d\n", this->xscreen_id);
+		fprintf(stdout, "W: %d\n", this->xscreen_width);
+		fprintf(stdout, "H: %d\n", this->xscreen_height);
+	}
+}
+
 Ctx Ctx__new(void)
 {
 	Ctx ctx;
@@ -47,8 +59,9 @@ Ctx Ctx__new(void)
 	ctx.xscreen_width = DisplayWidth(ctx.xconn, ctx.xscreen_id);
 	ctx.xscreen_height = DisplayHeight(ctx.xconn, ctx.xscreen_id);
 	ctx.xroot_id = RootWindow(ctx.xconn, ctx.xscreen_id);
-	ctx.xewmh_id = XCreateSimpleWindow(ctx.xconn, ctx.xroot_id, 0, 0, 1, 1, 0,
-					  0, 0);
+	ctx.xewmh_id = XCreateSimpleWindow(ctx.xconn, ctx.xroot_id, 0, 0, 1, 1,
+					   0, 0, 0);
+	ctx.log = Ctx__log;
 
 	return ctx;
 }
@@ -115,6 +128,7 @@ static void Swm__init(void)
 /// from previous window managers are still lurking about.
 static void Swm__scan(void)
 {
+	printf("Scanning for windows...\n");
 	uint32_t number_child_windows = 0;
 	Window parent_return;
 	Window child_return;
@@ -136,7 +150,7 @@ static void Swm__scan(void)
 
 			if (wa.map_state == IsViewable ||
 			    Swm__getstate(list_of_windows[i]) == IconicState) {
-				Swm__manage(list_of_windows[i], &wa);
+				Swm__manage_client(list_of_windows[i], &wa);
 			}
 		}
 		// Clear transients
@@ -150,7 +164,7 @@ static void Swm__scan(void)
 			    (wa.map_state == IsViewable ||
 			     Swm__getstate(list_of_windows[i]) ==
 				     IconicState)) {
-				Swm__manage(list_of_windows[i], &wa);
+				Swm__manage_client(list_of_windows[i], &wa);
 			}
 		}
 		if (list_of_windows) {
@@ -165,7 +179,8 @@ static void Swm__scan(void)
 static void Swm__init_fonts(void)
 {
 	g_swm.draw = drw_create(g_swm.ctx.xconn, g_swm.ctx.xscreen_id,
-				g_swm.ctx.xroot_id, g_swm.ctx.xscreen_width, g_swm.ctx.xscreen_height);
+				g_swm.ctx.xroot_id, g_swm.ctx.xscreen_width,
+				g_swm.ctx.xscreen_height);
 
 	if (!drw_fontset_create(g_swm.draw, G_USER_FONT)) {
 		die("no fonts could be loaded.");
@@ -338,7 +353,8 @@ void Swm__startup(void)
 
 		XChangeWindowAttributes(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 					CWEventMask | CWCursor, &wa);
-		XSelectInput(g_swm.ctx.xconn, g_swm.ctx.xroot_id, wa.event_mask);
+		XSelectInput(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
+			     wa.event_mask);
 
 		// Init bars
 		Swm__updatebars();
@@ -948,7 +964,7 @@ void Swm__grab_keys(void)
 	}
 }
 
-void Swm__manage(Window w_id, XWindowAttributes *wa)
+void Swm__manage_client(Window w_id, XWindowAttributes *wa)
 {
 	Window trans = None;
 	XWindowChanges wc;
@@ -977,6 +993,7 @@ void Swm__manage(Window w_id, XWindowAttributes *wa)
 
 	Swm__update_window_type(new_client);
 	Client__update_size_hints(g_swm.ctx.xconn, new_client);
+
 	Swm__update_wmhints(new_client);
 	XSelectInput(g_swm.ctx.xconn, w_id,
 		     EnterWindowMask | FocusChangeMask | PropertyChangeMask |
@@ -1001,8 +1018,8 @@ void Swm__manage(Window w_id, XWindowAttributes *wa)
 			1);
 
 	XMoveResizeWindow(g_swm.ctx.xconn, new_client->win,
-			  new_client->x + 2 * g_swm.ctx.xscreen_width, new_client->y,
-			  new_client->w,
+			  new_client->x + 2 * g_swm.ctx.xscreen_width,
+			  new_client->y, new_client->w,
 			  new_client->h); /* some windows require this */
 
 	Swm__set_client_state(new_client, NormalState);
@@ -1352,8 +1369,10 @@ bool Swm__updategeom(void)
 	if (g_swm.monitor_list->mw != g_swm.ctx.xscreen_width ||
 	    g_swm.monitor_list->mh != g_swm.ctx.xscreen_height) {
 		dirty = true;
-		g_swm.monitor_list->mw = g_swm.monitor_list->ww = g_swm.ctx.xscreen_width;
-		g_swm.monitor_list->mh = g_swm.monitor_list->wh = g_swm.ctx.xscreen_height;
+		g_swm.monitor_list->mw = g_swm.monitor_list->ww =
+			g_swm.ctx.xscreen_width;
+		g_swm.monitor_list->mh = g_swm.monitor_list->wh =
+			g_swm.ctx.xscreen_height;
 		Monitor__updatebarpos(g_swm.monitor_list);
 	}
 
@@ -1361,6 +1380,8 @@ bool Swm__updategeom(void)
 		g_swm.selected_monitor = g_swm.monitor_list;
 		g_swm.selected_monitor = Swm__wintomon(g_swm.ctx.xroot_id);
 	}
+
+	g_swm.ctx.log(&g_swm.ctx);
 	return dirty;
 }
 

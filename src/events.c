@@ -256,7 +256,8 @@ void Swm__event_configure_notify(XEvent *event)
 		g_swm.ctx.xscreen_width = ev->width;
 		g_swm.ctx.xscreen_height = ev->height;
 		if (Swm__updategeom() || dirty) {
-			drw_resize(g_swm.draw, g_swm.ctx.xscreen_width, g_swm.bar_height);
+			drw_resize(g_swm.draw, g_swm.ctx.xscreen_width,
+				   g_swm.bar_height);
 			Swm__updatebars();
 			for (temp_monitor = g_swm.monitor_list; temp_monitor;
 			     temp_monitor = temp_monitor->next) {
@@ -371,9 +372,10 @@ void Swm__event_map_request(XEvent *event)
 	    wa.override_redirect) {
 		return;
 	}
+	printf("MapRequest\n");
 
 	if (!Swm__win_to_client(ev->window)) {
-		Swm__manage(ev->window, &wa);
+		Swm__manage_client(ev->window, &wa);
 	}
 }
 

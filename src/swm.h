@@ -48,6 +48,9 @@
 
 typedef struct Ctx Ctx;
 
+/// @brief Callback function type for Client debugging information
+typedef void (*CtxLogFunction)(Ctx *);
+
 /// @brief Holds the X11 context
 struct Ctx {
 	/// X screen id
@@ -63,6 +66,8 @@ struct Ctx {
 	/// _NET_SUPPORTING_WM_CHECK window id for the EWMH
 	/// (Extended Window Manager Hints) protocol
 	Window xewmh_id;
+	/// Logging callback
+	CtxLogFunction log;
 };
 
 /// @brief Constructor for Ctx
@@ -228,7 +233,7 @@ void Swm__grab_keys(void);
 ///
 /// @param `w` The window to manage
 /// @param `wa` The window attributes of the window to manage
-void Swm__manage(Window w_id, XWindowAttributes *wa);
+void Swm__manage_client(Window w_id, XWindowAttributes *wa);
 
 /// @brief Transforms coordinates, width and height to the monitor they are on.
 ///
