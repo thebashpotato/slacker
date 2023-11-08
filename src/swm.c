@@ -128,7 +128,6 @@ static void Swm__init(void)
 /// from previous window managers are still lurking about.
 static void Swm__scan(void)
 {
-	printf("Scanning for windows...\n");
 	uint32_t number_child_windows = 0;
 	Window parent_return;
 	Window child_return;

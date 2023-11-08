@@ -372,7 +372,6 @@ void Swm__event_map_request(XEvent *event)
 	    wa.override_redirect) {
 		return;
 	}
-	printf("MapRequest\n");
 
 	if (!Swm__win_to_client(ev->window)) {
 		Swm__manage_client(ev->window, &wa);
