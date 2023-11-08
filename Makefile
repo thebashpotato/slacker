@@ -35,6 +35,12 @@ $(TARGET): $(OBJ)
 init:
 	@$(call _init)
 
+init-dev:
+	@$(call _init_dev)
+
+install:
+	@$(call _install)
+
 embed:
 	@$(call _embed)
 
@@ -44,8 +50,7 @@ format:
 clean:
 	@$(call _clean)
 
-
-.PHONY: all options init embed clean
+.PHONY: all options init init-dev embed clean
 
 # This magic snippet from is what enables the programmer to write
 # bash scripts in canned recipes, without all the annoying escapes.

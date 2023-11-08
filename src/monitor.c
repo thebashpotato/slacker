@@ -32,8 +32,8 @@ void Monitor__delete(Monitor *monitor)
 		}
 		temp_mon->next = monitor->next;
 	}
-	XUnmapWindow(g_swm.xconn, monitor->barwin);
-	XDestroyWindow(g_swm.xconn, monitor->barwin);
+	XUnmapWindow(g_swm.ctx.xconn, monitor->barwin);
+	XDestroyWindow(g_swm.ctx.xconn, monitor->barwin);
 	free(monitor);
 }
 

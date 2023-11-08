@@ -104,7 +104,7 @@ void Swm__event_button_press(XEvent *event)
 	if ((temp_client = Swm__win_to_client(ev->window))) {
 		Swm__focus(temp_client);
 		Swm__restack(g_swm.selected_monitor);
-		XAllowEvents(g_swm.xconn, ReplayPointer, CurrentTime);
+		XAllowEvents(g_swm.ctx.xconn, ReplayPointer, CurrentTime);
 		click = SlackerClick_ClientWin;
 	}
 
@@ -218,18 +218,17 @@ void Swm__event_configure_request(XEvent *event)
 
 			if ((ev->value_mask & (CWX | CWY)) &&
 			    !(ev->value_mask & (CWWidth | CWHeight))) {
-				Client__configure(g_swm.xconn, temp_client);
+				Client__configure(g_swm.ctx.xconn, temp_client);
 			}
 
 			if (ISVISIBLE(temp_client)) {
-				XMoveResizeWindow(g_swm.xconn, temp_client->win,
-						  temp_client->x,
-						  temp_client->y,
-						  temp_client->w,
-						  temp_client->h);
+				XMoveResizeWindow(
+					g_swm.ctx.xconn, temp_client->win,
+					temp_client->x, temp_client->y,
+					temp_client->w, temp_client->h);
 			}
 		} else {
-			Client__configure(g_swm.xconn, temp_client);
+			Client__configure(g_swm.ctx.xconn, temp_client);
 		}
 	} else {
 		wc.x = ev->x;
@@ -239,9 +238,10 @@ void Swm__event_configure_request(XEvent *event)
 		wc.border_width = ev->border_width;
 		wc.sibling = ev->above;
 		wc.stack_mode = ev->detail;
-		XConfigureWindow(g_swm.xconn, ev->window, ev->value_mask, &wc);
+		XConfigureWindow(g_swm.ctx.xconn, ev->window, ev->value_mask,
+				 &wc);
 	}
-	XSync(g_swm.xconn, False);
+	XSync(g_swm.ctx.xconn, False);
 }
 
 void Swm__event_configure_notify(XEvent *event)
@@ -250,14 +250,13 @@ void Swm__event_configure_notify(XEvent *event)
 	Client *temp_client = NULL;
 	XConfigureEvent *ev = &event->xconfigure;
 
-	if (ev->window == g_swm.root_wid) {
-		int32_t dirty = (g_swm.screen_width != ev->width ||
-				 g_swm.screen_height != ev->height);
-		g_swm.screen_width = ev->width;
-		g_swm.screen_height = ev->height;
+	if (ev->window == g_swm.ctx.xroot_id) {
+		int32_t dirty = (g_swm.ctx.xscreen_width != ev->width ||
+				 g_swm.ctx.xscreen_height != ev->height);
+		g_swm.ctx.xscreen_width = ev->width;
+		g_swm.ctx.xscreen_height = ev->height;
 		if (Swm__updategeom() || dirty) {
-			drw_resize(g_swm.draw, g_swm.screen_width,
-				   g_swm.bar_height);
+			drw_resize(g_swm.draw, g_swm.ctx.xscreen_width, g_swm.bar_height);
 			Swm__updatebars();
 			for (temp_monitor = g_swm.monitor_list; temp_monitor;
 			     temp_monitor = temp_monitor->next) {
@@ -273,7 +272,7 @@ void Swm__event_configure_notify(XEvent *event)
 							temp_monitor->mh);
 				}
 				XMoveResizeWindow(
-					g_swm.xconn, temp_monitor->barwin,
+					g_swm.ctx.xconn, temp_monitor->barwin,
 					temp_monitor->wx, temp_monitor->by,
 					temp_monitor->ww, g_swm.bar_height);
 			}
@@ -300,7 +299,7 @@ void Swm__event_enter_notify(XEvent *event)
 	XCrossingEvent *ev = &event->xcrossing;
 
 	if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) &&
-	    ev->window != g_swm.root_wid) {
+	    ev->window != g_swm.ctx.xroot_id) {
 		return;
 	}
 
@@ -341,7 +340,8 @@ void Swm__event_focusin(XEvent *event)
 void Swm__event_keypress(XEvent *event)
 {
 	XKeyEvent *ev = &event->xkey;
-	KeySym keysym = XKeycodeToKeysym(g_swm.xconn, (KeyCode)ev->keycode, 0);
+	KeySym keysym =
+		XKeycodeToKeysym(g_swm.ctx.xconn, (KeyCode)ev->keycode, 0);
 
 	for (uint32_t i = 0; i < LENGTH(G_KEYBINDINGS); ++i) {
 		if (keysym == G_KEYBINDINGS[i].keysym &&
@@ -367,7 +367,7 @@ void Swm__event_map_request(XEvent *event)
 	static XWindowAttributes wa;
 	XMapRequestEvent *ev = &event->xmaprequest;
 
-	if (!XGetWindowAttributes(g_swm.xconn, ev->window, &wa) ||
+	if (!XGetWindowAttributes(g_swm.ctx.xconn, ev->window, &wa) ||
 	    wa.override_redirect) {
 		return;
 	}
@@ -379,20 +379,21 @@ void Swm__event_map_request(XEvent *event)
 
 void Swm__event_motion_notify(XEvent *event)
 {
-	static Monitor *mon = NULL;
-	Monitor *m;
+	static Monitor *s_mon = NULL;
+	Monitor *temp_mon = NULL;
 	XMotionEvent *ev = &event->xmotion;
 
-	if (ev->window != g_swm.root_wid) {
+	if (ev->window != g_swm.ctx.xroot_id) {
 		return;
 	}
-	if ((m = Swm__rect_to_monitor(ev->x_root, ev->y_root, 1, 1)) != mon &&
-	    mon) {
+	if ((temp_mon = Swm__rect_to_monitor(ev->x_root, ev->y_root, 1, 1)) !=
+		    s_mon &&
+	    s_mon) {
 		Swm__unfocus(g_swm.selected_monitor->selected_client, 1);
-		g_swm.selected_monitor = m;
+		g_swm.selected_monitor = temp_mon;
 		Swm__focus(NULL);
 	}
-	mon = m;
+	s_mon = temp_mon;
 }
 
 void Swm__event_property_notify(XEvent *event)
@@ -401,7 +402,7 @@ void Swm__event_property_notify(XEvent *event)
 	Window trans;
 	XPropertyEvent *ev = &event->xproperty;
 
-	if ((ev->window == g_swm.root_wid) && (ev->atom == XA_WM_NAME)) {
+	if ((ev->window == g_swm.ctx.xroot_id) && (ev->atom == XA_WM_NAME)) {
 		Swm__update_status();
 	} else if (ev->state == PropertyDelete) {
 		// TODO: Move this else if to an if at the top of the file.
@@ -410,7 +411,7 @@ void Swm__event_property_notify(XEvent *event)
 		switch (ev->atom) {
 		case XA_WM_TRANSIENT_FOR:
 			if (!client->isfloating &&
-			    (XGetTransientForHint(g_swm.xconn, client->win,
+			    (XGetTransientForHint(g_swm.ctx.xconn, client->win,
 						  &trans)) &&
 			    (client->isfloating = (Swm__win_to_client(trans)) !=
 						  NULL)) {

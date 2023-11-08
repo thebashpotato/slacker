@@ -46,7 +46,7 @@
 #include "utils.h"
 #include "swm.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	if (DEBUG == 1) {
 		printf("Running in debug mode, attach debugger to pid: '%d'\n",
@@ -56,8 +56,6 @@ int main(int argc, char *argv[])
 	if (argc == 2 && !strcmp("-v", argv[1])) {
 		fprintf(stdout, "swm-" VERSION "\n");
 		return EXIT_SUCCESS;
-	} else if (argc != 1) {
-		die("usage: slacker [-v]");
 	} else {
 		if (!setlocale(LC_CTYPE, "") || !XSupportsLocale()) {
 			fputs("warning: no locale support\n", stderr);

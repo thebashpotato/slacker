@@ -7,6 +7,7 @@ endef
 
 
 # Embeds the window manager in a Xephyr window for testing and debugging
+# The below command will need to be ran if you are attaching a debugger.
 # echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
 define _embed =
 	if [ ! -f $(BIN_DIR)/$(TARGET) ]; then
@@ -21,7 +22,7 @@ define _embed =
 
 	echo "Press Ctrl+Shift to grab mouse and keyboard events in the Xephyr window, and Ctrl+Shift again to release"
 
-	Xephyr :1 -ac -br -noreset -screen 1200x800 &
+	Xephyr :1 -ac -br -noreset -screen 1000x600 &
 	XEPHYR_PID=$!
 	sleep 1
 	DISPLAY=:1 ./$(BIN_DIR)/$(TARGET) &
@@ -59,4 +60,18 @@ define _init =
 	else
 		echo "You are not on a Debian based system, make a pull request for your package manager"
 	fi
+endef
+
+
+define _init_dev =
+	if command -v apt 1>/dev/null 2>&1; then
+		apt-get install libx11-dev libxft-dev bear clang clangd clang-format xserver-xephyr
+	else
+		echo "You are not on a Debian based system, make a pull request for your package manager"
+	fi
+endef
+
+
+define __install =
+	echo "Not implemented yet"
 endef

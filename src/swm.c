@@ -32,6 +32,39 @@
 
 Swm g_swm;
 
+Ctx Ctx__new(void)
+{
+	Ctx ctx;
+
+	// Open a connection to the X server, if we can't get a handle we can't run.
+	// This will usually fail if the DISPLAY environment variable is not set,
+	// or if the X server is not running.
+	if (!(ctx.xconn = XOpenDisplay(NULL))) {
+		die("swm: cannot open display");
+	}
+
+	ctx.xscreen_id = DefaultScreen(ctx.xconn);
+	ctx.xscreen_width = DisplayWidth(ctx.xconn, ctx.xscreen_id);
+	ctx.xscreen_height = DisplayHeight(ctx.xconn, ctx.xscreen_id);
+	ctx.xroot_id = RootWindow(ctx.xconn, ctx.xscreen_id);
+	ctx.xewmh_id = XCreateSimpleWindow(ctx.xconn, ctx.xroot_id, 0, 0, 1, 1, 0,
+					  0, 0);
+
+	return ctx;
+}
+
+void Ctx__delete(Ctx *ctx)
+{
+	if (ctx) {
+		ctx->xscreen_id = 0;
+		ctx->xscreen_width = 0;
+		ctx->xscreen_height = 0;
+		ctx->xroot_id = 0;
+		XDestroyWindow(ctx->xconn, ctx->xewmh_id);
+		XCloseDisplay(ctx->xconn);
+	}
+}
+
 /////////////////////////////////////////////////////////////
 /// 				Private Functions
 /////////////////////////////////////////////////////////////
@@ -42,44 +75,38 @@ Swm g_swm;
 /// Called only once in `Swm__init`
 static void Swm__checkotherwm(void)
 {
-	if (g_swm.xconn) {
+	if (g_swm.ctx.xconn) {
 		g_swm.xerror_callback = XSetErrorHandler(xerrorstart);
 		// This will cause an X11 error to be triggered if another window manager is running.
 		// The error is handlered by the slacker custom xerrorxlib function.
-		XSelectInput(g_swm.xconn, DefaultRootWindow(g_swm.xconn),
+		XSelectInput(g_swm.ctx.xconn,
+			     DefaultRootWindow(g_swm.ctx.xconn),
 			     SubstructureRedirectMask);
-		XSync(g_swm.xconn, False);
+
+		XSync(g_swm.ctx.xconn, False);
 		XSetErrorHandler(Swm__xerror_handler);
-		XSync(g_swm.xconn, False);
+		XSync(g_swm.ctx.xconn, False);
 	}
 }
 
-/// @brief Default construction for the window manager
+/// @brief Initializes the X11 context, and sets sane defaults.
 ///
 /// @details Private function, only called once in `Swm__init`
-static Swm Swm__new(void)
+static void Swm__init(void)
 {
-	Swm wm;
-	wm.screen = 0;
-	wm.screen_width = 0;
-	wm.screen_height = 0;
-	wm.bar_height = 0;
-	wm.left_right_padding_sum = 0;
-	wm.xerror_callback = NULL;
-	wm.numlockmask = 0;
-	wm.is_running = false;
+	g_swm.ctx = Ctx__new();
+	g_swm.bar_height = 0;
+	g_swm.left_right_padding_sum = 0;
+	g_swm.xerror_callback = NULL;
+	g_swm.numlockmask = 0;
+	g_swm.is_running = false;
 	for (uint32_t i = 0; i < SlackerCursorState_Last; ++i) {
-		wm.cursor[i] = NULL;
+		g_swm.cursor[i] = NULL;
 	}
-	wm.scheme = NULL;
-	wm.xconn = NULL;
-	wm.draw = NULL;
-	wm.monitor_list = NULL;
-	wm.selected_monitor = NULL;
-	wm.root_wid = 0;
-	wm.ewmh_support_wid = 0;
-
-	return wm;
+	g_swm.scheme = NULL;
+	g_swm.draw = NULL;
+	g_swm.monitor_list = NULL;
+	g_swm.selected_monitor = NULL;
 }
 
 /// @brief Remove all child and transient windows from the window manager.
@@ -94,14 +121,14 @@ static void Swm__scan(void)
 	Window *list_of_windows = NULL;
 	XWindowAttributes wa;
 
-	if (XQueryTree(g_swm.xconn, g_swm.root_wid, &parent_return,
+	if (XQueryTree(g_swm.ctx.xconn, g_swm.ctx.xroot_id, &parent_return,
 		       &child_return, &list_of_windows,
 		       &number_child_windows)) {
 		for (uint32_t i = 0; i < number_child_windows; ++i) {
-			if (!XGetWindowAttributes(g_swm.xconn,
+			if (!XGetWindowAttributes(g_swm.ctx.xconn,
 						  list_of_windows[i], &wa) ||
 			    wa.override_redirect ||
-			    XGetTransientForHint(g_swm.xconn,
+			    XGetTransientForHint(g_swm.ctx.xconn,
 						 list_of_windows[i],
 						 &parent_return)) {
 				continue;
@@ -114,10 +141,10 @@ static void Swm__scan(void)
 		}
 		// Clear transients
 		for (uint32_t i = 0; i < number_child_windows; ++i) {
-			if (!XGetWindowAttributes(g_swm.xconn,
+			if (!XGetWindowAttributes(g_swm.ctx.xconn,
 						  list_of_windows[i], &wa))
 				continue;
-			if (XGetTransientForHint(g_swm.xconn,
+			if (XGetTransientForHint(g_swm.ctx.xconn,
 						 list_of_windows[i],
 						 &parent_return) &&
 			    (wa.map_state == IsViewable ||
@@ -132,24 +159,13 @@ static void Swm__scan(void)
 	}
 }
 
-/// @brief Sets up the X screen, root window id, and screen id.
-///
-/// @details Private function, only called once in `Swm__init`
-static void Swm__init_screen(void)
-{
-	g_swm.screen = DefaultScreen(g_swm.xconn);
-	g_swm.screen_width = DisplayWidth(g_swm.xconn, g_swm.screen);
-	g_swm.screen_height = DisplayHeight(g_swm.xconn, g_swm.screen);
-	g_swm.root_wid = RootWindow(g_swm.xconn, g_swm.screen);
-}
-
 /// @brief Initializes the draw object, fonts, and bar.
 ///
 /// @details Private function, only called once in `Swm__init`
 static void Swm__init_fonts(void)
 {
-	g_swm.draw = drw_create(g_swm.xconn, g_swm.screen, g_swm.root_wid,
-				g_swm.screen_width, g_swm.screen_height);
+	g_swm.draw = drw_create(g_swm.ctx.xconn, g_swm.ctx.xscreen_id,
+				g_swm.ctx.xroot_id, g_swm.ctx.xscreen_width, g_swm.ctx.xscreen_height);
 
 	if (!drw_fontset_create(g_swm.draw, G_USER_FONT)) {
 		die("no fonts could be loaded.");
@@ -169,46 +185,46 @@ static void Swm__init_fonts(void)
 /// @return Atom The UTF8_STRING atom
 Atom static Swm__init_atoms(void)
 {
-	Atom utf8string = XInternAtom(g_swm.xconn, "UTF8_STRING", False);
+	Atom utf8string = XInternAtom(g_swm.ctx.xconn, "UTF8_STRING", False);
 
 	g_swm.wmatom[SlackerDefaultAtom_WMProtocols] =
-		XInternAtom(g_swm.xconn, "WM_PROTOCOLS", False);
+		XInternAtom(g_swm.ctx.xconn, "WM_PROTOCOLS", False);
 
 	g_swm.wmatom[SlackerDefaultAtom_WMDelete] =
-		XInternAtom(g_swm.xconn, "WM_DELETE_WINDOW", False);
+		XInternAtom(g_swm.ctx.xconn, "WM_DELETE_WINDOW", False);
 
 	g_swm.wmatom[SlackerDefaultAtom_WMState] =
-		XInternAtom(g_swm.xconn, "WM_STATE", False);
+		XInternAtom(g_swm.ctx.xconn, "WM_STATE", False);
 
 	g_swm.wmatom[SlackerDefaultAtom_WMTakeFocus] =
-		XInternAtom(g_swm.xconn, "WM_TAKE_FOCUS", False);
+		XInternAtom(g_swm.ctx.xconn, "WM_TAKE_FOCUS", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetActiveWindow] =
-		XInternAtom(g_swm.xconn, "_NET_ACTIVE_WINDOW", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_ACTIVE_WINDOW", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetSupported] =
-		XInternAtom(g_swm.xconn, "_NET_SUPPORTED", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_SUPPORTED", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetWMName] =
-		XInternAtom(g_swm.xconn, "_NET_WM_NAME", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_WM_NAME", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetWMState] =
-		XInternAtom(g_swm.xconn, "_NET_WM_STATE", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_WM_STATE", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetWMCheck] =
-		XInternAtom(g_swm.xconn, "_NET_SUPPORTING_WM_CHECK", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_SUPPORTING_WM_CHECK", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetWMFullscreen] =
-		XInternAtom(g_swm.xconn, "_NET_WM_STATE_FULLSCREEN", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_WM_STATE_FULLSCREEN", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetWMWindowType] =
-		XInternAtom(g_swm.xconn, "_NET_WM_WINDOW_TYPE", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_WM_WINDOW_TYPE", False);
 
-	g_swm.netatom[SlackerEWMHAtom_NetWMWindowTypeDialog] =
-		XInternAtom(g_swm.xconn, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+	g_swm.netatom[SlackerEWMHAtom_NetWMWindowTypeDialog] = XInternAtom(
+		g_swm.ctx.xconn, "_NET_WM_WINDOW_TYPE_DIALOG", False);
 
 	g_swm.netatom[SlackerEWMHAtom_NetClientList] =
-		XInternAtom(g_swm.xconn, "_NET_CLIENT_LIST", False);
+		XInternAtom(g_swm.ctx.xconn, "_NET_CLIENT_LIST", False);
 
 	return utf8string;
 }
@@ -216,30 +232,27 @@ Atom static Swm__init_atoms(void)
 /// @brief Initializes the supporting window for EWMH and set properties
 static void Swm__init_ewmh_support(Atom utf8string)
 {
-	g_swm.ewmh_support_wid = XCreateSimpleWindow(
-		g_swm.xconn, g_swm.root_wid, 0, 0, 1, 1, 0, 0, 0);
-
-	XChangeProperty(g_swm.xconn, g_swm.ewmh_support_wid,
+	XChangeProperty(g_swm.ctx.xconn, g_swm.ctx.xewmh_id,
 			g_swm.netatom[SlackerEWMHAtom_NetWMCheck], XA_WINDOW,
 			32, PropModeReplace,
-			(unsigned char *)&g_swm.ewmh_support_wid, 1);
+			(unsigned char *)&g_swm.ctx.xewmh_id, 1);
 
-	XChangeProperty(g_swm.xconn, g_swm.ewmh_support_wid,
+	XChangeProperty(g_swm.ctx.xconn, g_swm.ctx.xewmh_id,
 			g_swm.netatom[SlackerEWMHAtom_NetWMName], utf8string, 8,
 			PropModeReplace, (unsigned char *)"swm", 3);
 
-	XChangeProperty(g_swm.xconn, g_swm.root_wid,
+	XChangeProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 			g_swm.netatom[SlackerEWMHAtom_NetWMCheck], XA_WINDOW,
 			32, PropModeReplace,
-			(unsigned char *)&g_swm.ewmh_support_wid, 1);
+			(unsigned char *)&g_swm.ctx.xewmh_id, 1);
 
 	// EWMH support per view
-	XChangeProperty(g_swm.xconn, g_swm.root_wid,
+	XChangeProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 			g_swm.netatom[SlackerEWMHAtom_NetSupported], XA_ATOM,
 			32, PropModeReplace, (unsigned char *)g_swm.netatom,
 			SlackerEWMHAtom_NetLast);
 
-	XDeleteProperty(g_swm.xconn, g_swm.root_wid,
+	XDeleteProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 			g_swm.netatom[SlackerEWMHAtom_NetClientList]);
 }
 
@@ -249,6 +262,8 @@ static void Swm__init_ewmh_support(Atom utf8string)
 ///		- Move
 ///
 /// @details Private function, only called once in `Swm__init`
+///
+/// @param wa The XSetWindowAttributes struct to set the cursor on
 static void Swm__init_cursor_states(XSetWindowAttributes *wa)
 {
 	g_swm.cursor[SlackerCursorState_Normal] =
@@ -286,21 +301,16 @@ void Swm__startup(void)
 		clean_environment();
 
 		// Initialize the main fields of slacker with sane defaults.
-		g_swm = Swm__new();
+		Swm__init();
 
-		// Open a connection to the X server, if we can't get a handle we can't run.
-		// This will usually fail if the DISPLAY environment variable is not set,
-		// or if the X server is not running.
-		if (!(g_swm.xconn = XOpenDisplay(NULL))) {
-			die("swm: cannot open display");
-		}
+		// Check to see if a different window manager is running.
 		Swm__checkotherwm();
 
-		// If we can open the X display, and there are no other window managers running,
+		// If the X context was initialized, and there are no other window managers running,
 		// we can assume we are good to run the window manager.
 		g_swm.is_running = true;
 
-		Swm__init_screen();
+		// Create Draw object, and fonts
 		Swm__init_fonts();
 
 		// Creates monitors and sets the current monitor to the first one
@@ -326,9 +336,9 @@ void Swm__startup(void)
 				LeaveWindowMask | StructureNotifyMask |
 				PropertyChangeMask;
 
-		XChangeWindowAttributes(g_swm.xconn, g_swm.root_wid,
+		XChangeWindowAttributes(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 					CWEventMask | CWCursor, &wa);
-		XSelectInput(g_swm.xconn, g_swm.root_wid, wa.event_mask);
+		XSelectInput(g_swm.ctx.xconn, g_swm.ctx.xroot_id, wa.event_mask);
 
 		// Init bars
 		Swm__updatebars();
@@ -359,7 +369,7 @@ void Swm__delete(void)
 	}
 
 	// force ungrabbing of any key presses on the root window
-	XUngrabKey(g_swm.xconn, AnyKey, AnyModifier, g_swm.root_wid);
+	XUngrabKey(g_swm.ctx.xconn, AnyKey, AnyModifier, g_swm.ctx.xroot_id);
 
 	// free all monitors
 	while (g_swm.monitor_list) {
@@ -381,19 +391,17 @@ void Swm__delete(void)
 		free(g_swm.scheme);
 	}
 
-	// Free the check window
-	XDestroyWindow(g_swm.xconn, g_swm.ewmh_support_wid);
-
 	// Free the drawable abstraction
 	drw_free(g_swm.draw);
 
-	XSync(g_swm.xconn, False);
-	XSetInputFocus(g_swm.xconn, PointerRoot, RevertToPointerRoot,
+	XSync(g_swm.ctx.xconn, False);
+	XSetInputFocus(g_swm.ctx.xconn, PointerRoot, RevertToPointerRoot,
 		       CurrentTime);
-	XDeleteProperty(g_swm.xconn, g_swm.root_wid,
+	XDeleteProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 			g_swm.netatom[SlackerEWMHAtom_NetActiveWindow]);
 
-	XCloseDisplay(g_swm.xconn);
+	// Close the X context
+	Ctx__delete(&g_swm.ctx);
 }
 
 int32_t Swm__xerror_handler(Display *xconn, XErrorEvent *ee)
@@ -431,7 +439,7 @@ void Swm__applyrules(Client *client)
 	// Rule matching
 	client->isfloating = 0;
 	client->tags = 0;
-	XGetClassHint(g_swm.xconn, client->win, &ch);
+	XGetClassHint(g_swm.ctx.xconn, client->win, &ch);
 	class = ch.res_class ? ch.res_class : CLIENT_WINDOW_BROKEN;
 	instance = ch.res_name ? ch.res_name : CLIENT_WINDOW_BROKEN;
 
@@ -482,11 +490,11 @@ int Swm__applysizehints(Client *client, int *x, int *y, int *w, int *h,
 	*h = MAX(1, *h);
 
 	if (interact) {
-		if (*x > g_swm.screen_width) {
-			*x = g_swm.screen_width - WIDTH(client);
+		if (*x > g_swm.ctx.xscreen_width) {
+			*x = g_swm.ctx.xscreen_width - WIDTH(client);
 		}
-		if (*y > g_swm.screen_height) {
-			*y = g_swm.screen_height - HEIGHT(client);
+		if (*y > g_swm.ctx.xscreen_height) {
+			*y = g_swm.ctx.xscreen_height - HEIGHT(client);
 		}
 		if (*x + *w + 2 * client->bw < 0) {
 			*x = 0;
@@ -521,7 +529,7 @@ int Swm__applysizehints(Client *client, int *x, int *y, int *w, int *h,
 	if (G_RESIZE_HINTS || client->isfloating ||
 	    !client->mon->layouts[client->mon->selected_layout]->handler) {
 		if (!client->hintsvalid) {
-			Client__update_size_hints(g_swm.xconn, client);
+			Client__update_size_hints(g_swm.ctx.xconn, client);
 		}
 
 		// See last two sentences in ICCCM 4.1.2.3
@@ -765,15 +773,15 @@ void Swm__focus(Client *client)
 		Swm__grab_buttons(client, true);
 
 		XSetWindowBorder(
-			g_swm.xconn, client->win,
+			g_swm.ctx.xconn, client->win,
 			g_swm.scheme[SlackerColorscheme_Sel][ColBorder].pixel);
 
 		Swm__setfocus(client);
 	} else {
-		XSetInputFocus(g_swm.xconn, g_swm.root_wid, RevertToPointerRoot,
-			       CurrentTime);
+		XSetInputFocus(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
+			       RevertToPointerRoot, CurrentTime);
 
-		XDeleteProperty(g_swm.xconn, g_swm.root_wid,
+		XDeleteProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 				g_swm.netatom[SlackerEWMHAtom_NetActiveWindow]);
 	}
 
@@ -788,8 +796,8 @@ Atom Swm__get_atom_prop(Client *client, Atom prop)
 	unsigned char *p = NULL;
 	Atom da, atom = None;
 
-	if (XGetWindowProperty(g_swm.xconn, client->win, prop, 0L, sizeof(atom),
-			       False, XA_ATOM, &da, &di, &dl, &dl,
+	if (XGetWindowProperty(g_swm.ctx.xconn, client->win, prop, 0L,
+			       sizeof(atom), False, XA_ATOM, &da, &di, &dl, &dl,
 			       &p) == Success &&
 	    p) {
 		atom = *(Atom *)p;
@@ -805,10 +813,10 @@ int32_t Swm__getrootptr(int *root_x_return, int *root_y_return)
 	uint32_t mask_return_dummy = 0;
 	Window root_return_dummy, child_return_dummy;
 
-	return XQueryPointer(g_swm.xconn, g_swm.root_wid, &root_return_dummy,
-			     &child_return_dummy, root_x_return, root_y_return,
-			     &win_return_dummy, &win_return_dummy,
-			     &mask_return_dummy);
+	return XQueryPointer(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
+			     &root_return_dummy, &child_return_dummy,
+			     root_x_return, root_y_return, &win_return_dummy,
+			     &win_return_dummy, &mask_return_dummy);
 }
 
 int64_t Swm__getstate(Window wid)
@@ -820,7 +828,7 @@ int64_t Swm__getstate(Window wid)
 	uint64_t extra = 0;
 	Atom real;
 
-	if (XGetWindowProperty(g_swm.xconn, wid,
+	if (XGetWindowProperty(g_swm.ctx.xconn, wid,
 			       g_swm.wmatom[SlackerDefaultAtom_WMState], 0L, 2L,
 			       False, g_swm.wmatom[SlackerDefaultAtom_WMState],
 			       &real, &format, &n, &extra,
@@ -844,14 +852,15 @@ bool Swm__get_text_prop(Window w_id, Atom atom, char *text, uint32_t size)
 	}
 	text[0] = '\0';
 
-	if (!XGetTextProperty(g_swm.xconn, w_id, &name, atom) || !name.nitems) {
+	if (!XGetTextProperty(g_swm.ctx.xconn, w_id, &name, atom) ||
+	    !name.nitems) {
 		return false;
 	}
 
 	if (name.encoding == XA_STRING) {
 		strncpy(text, (char *)name.value, size - 1);
-	} else if (XmbTextPropertyToTextList(g_swm.xconn, &name, &list, &n) >=
-			   Success &&
+	} else if (XmbTextPropertyToTextList(g_swm.ctx.xconn, &name, &list,
+					     &n) >= Success &&
 		   (n > 0 && *list)) {
 		strncpy(text, *list, size - 1);
 		XFreeStringList(list);
@@ -867,10 +876,11 @@ void Swm__grab_buttons(Client *client, bool focused)
 	Swm__update_numlock_mask();
 	{
 		// Clear all buttons
-		XUngrabButton(g_swm.xconn, AnyButton, AnyModifier, client->win);
+		XUngrabButton(g_swm.ctx.xconn, AnyButton, AnyModifier,
+			      client->win);
 
 		if (!focused) {
-			XGrabButton(g_swm.xconn, AnyButton, AnyModifier,
+			XGrabButton(g_swm.ctx.xconn, AnyButton, AnyModifier,
 				    client->win, False, BUTTONMASK,
 				    GrabModeSync, GrabModeSync, None, None);
 		}
@@ -884,7 +894,7 @@ void Swm__grab_buttons(Client *client, bool focused)
 			    SlackerClick_ClientWin) {
 				for (uint32_t j = 0; j < LENGTH(modifiers); ++j)
 					XGrabButton(
-						g_swm.xconn,
+						g_swm.ctx.xconn,
 						G_CLICKABLE_BUTTONS[i].id,
 						G_CLICKABLE_BUTTONS[i]
 								.event_mask |
@@ -908,9 +918,10 @@ void Swm__grab_keys(void)
 		int32_t end = 0;
 		int32_t skip = 0;
 
-		XUngrabKey(g_swm.xconn, AnyKey, AnyModifier, g_swm.root_wid);
-		XDisplayKeycodes(g_swm.xconn, &start, &end);
-		KeySym *syms = XGetKeyboardMapping(g_swm.xconn, start,
+		XUngrabKey(g_swm.ctx.xconn, AnyKey, AnyModifier,
+			   g_swm.ctx.xroot_id);
+		XDisplayKeycodes(g_swm.ctx.xconn, &start, &end);
+		KeySym *syms = XGetKeyboardMapping(g_swm.ctx.xconn, start,
 						   (end - (start + 1)), &skip);
 		if (!syms) {
 			return;
@@ -923,11 +934,11 @@ void Swm__grab_keys(void)
 				    syms[(k - start) * skip]) {
 					for (uint32_t j = 0;
 					     j < LENGTH(modifiers); ++j) {
-						XGrabKey(g_swm.xconn, k,
+						XGrabKey(g_swm.ctx.xconn, k,
 							 G_KEYBINDINGS[i].mod |
 								 modifiers[j],
-							 g_swm.root_wid, True,
-							 GrabModeAsync,
+							 g_swm.ctx.xroot_id,
+							 True, GrabModeAsync,
 							 GrabModeAsync);
 					}
 				}
@@ -945,7 +956,7 @@ void Swm__manage(Window w_id, XWindowAttributes *wa)
 	Client *new_client = NULL;
 	Client *temp_client = NULL;
 
-	if (XGetTransientForHint(g_swm.xconn, w_id, &trans) &&
+	if (XGetTransientForHint(g_swm.ctx.xconn, w_id, &trans) &&
 	    (temp_client = Swm__win_to_client(trans))) {
 		new_client = Client__new(w_id, wa, temp_client->mon);
 		new_client->tags = temp_client->tags;
@@ -956,18 +967,18 @@ void Swm__manage(Window w_id, XWindowAttributes *wa)
 	Swm__update_client_title(new_client);
 
 	wc.border_width = new_client->bw;
-	XConfigureWindow(g_swm.xconn, w_id, CWBorderWidth, &wc);
+	XConfigureWindow(g_swm.ctx.xconn, w_id, CWBorderWidth, &wc);
 	XSetWindowBorder(
-		g_swm.xconn, w_id,
+		g_swm.ctx.xconn, w_id,
 		g_swm.scheme[SlackerColorscheme_Norm][ColBorder].pixel);
 
 	// Propagates border_width, if size doesn't change
-	Client__configure(g_swm.xconn, new_client);
+	Client__configure(g_swm.ctx.xconn, new_client);
 
 	Swm__update_window_type(new_client);
-	Client__update_size_hints(g_swm.xconn, new_client);
+	Client__update_size_hints(g_swm.ctx.xconn, new_client);
 	Swm__update_wmhints(new_client);
-	XSelectInput(g_swm.xconn, w_id,
+	XSelectInput(g_swm.ctx.xconn, w_id,
 		     EnterWindowMask | FocusChangeMask | PropertyChangeMask |
 			     StructureNotifyMask);
 
@@ -979,18 +990,18 @@ void Swm__manage(Window w_id, XWindowAttributes *wa)
 	}
 
 	if (new_client->isfloating) {
-		XRaiseWindow(g_swm.xconn, new_client->win);
+		XRaiseWindow(g_swm.ctx.xconn, new_client->win);
 	}
 
 	Client__attach(new_client);
 	Client__attach_to_stack(new_client);
-	XChangeProperty(g_swm.xconn, g_swm.root_wid,
+	XChangeProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 			g_swm.netatom[SlackerEWMHAtom_NetClientList], XA_WINDOW,
 			32, PropModeAppend, (unsigned char *)&(new_client->win),
 			1);
 
-	XMoveResizeWindow(g_swm.xconn, new_client->win,
-			  new_client->x + 2 * g_swm.screen_width, new_client->y,
+	XMoveResizeWindow(g_swm.ctx.xconn, new_client->win,
+			  new_client->x + 2 * g_swm.ctx.xscreen_width, new_client->y,
 			  new_client->w,
 			  new_client->h); /* some windows require this */
 
@@ -1001,7 +1012,7 @@ void Swm__manage(Window w_id, XWindowAttributes *wa)
 
 	new_client->mon->selected_client = new_client;
 	Swm__arrange_monitors(new_client->mon);
-	XMapWindow(g_swm.xconn, new_client->win);
+	XMapWindow(g_swm.ctx.xconn, new_client->win);
 	Swm__focus(NULL);
 }
 
@@ -1033,10 +1044,10 @@ void Swm__resize_client(Client *client, int x, int y, int w, int h)
 	client->oldh = client->h;
 	client->h = wc.height = h;
 	wc.border_width = client->bw;
-	XConfigureWindow(g_swm.xconn, client->win,
+	XConfigureWindow(g_swm.ctx.xconn, client->win,
 			 CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
-	Client__configure(g_swm.xconn, client);
-	XSync(g_swm.xconn, False);
+	Client__configure(g_swm.ctx.xconn, client);
+	XSync(g_swm.ctx.xconn, False);
 }
 
 void Swm__restack(Monitor *monitor)
@@ -1053,7 +1064,7 @@ void Swm__restack(Monitor *monitor)
 	// if the selected client is floating, and the arrange callback is not null, raise the window.
 	if (monitor->selected_client->isfloating ||
 	    !monitor->layouts[monitor->selected_layout]->handler) {
-		XRaiseWindow(g_swm.xconn, monitor->selected_client->win);
+		XRaiseWindow(g_swm.ctx.xconn, monitor->selected_client->win);
 	}
 
 	// if the layout out callback function is not null, stack the windows
@@ -1064,15 +1075,16 @@ void Swm__restack(Monitor *monitor)
 		     temp_client = temp_client->stack_next) {
 			if (!temp_client->isfloating &&
 			    ISVISIBLE(temp_client)) {
-				XConfigureWindow(g_swm.xconn, temp_client->win,
+				XConfigureWindow(g_swm.ctx.xconn,
+						 temp_client->win,
 						 CWSibling | CWStackMode, &wc);
 				wc.sibling = temp_client->win;
 			}
 		}
 	}
 
-	XSync(g_swm.xconn, false);
-	while (XCheckMaskEvent(g_swm.xconn, EnterWindowMask, &ev)) {
+	XSync(g_swm.ctx.xconn, false);
+	while (XCheckMaskEvent(g_swm.ctx.xconn, EnterWindowMask, &ev)) {
 		;
 	}
 }
@@ -1080,8 +1092,8 @@ void Swm__restack(Monitor *monitor)
 void Swm__run(void)
 {
 	XEvent ev;
-	XSync(g_swm.xconn, False);
-	while (g_swm.is_running && !XNextEvent(g_swm.xconn, &ev)) {
+	XSync(g_swm.ctx.xconn, False);
+	while (g_swm.is_running && !XNextEvent(g_swm.ctx.xconn, &ev)) {
 		Swm__event_loop(&ev);
 	}
 }
@@ -1090,7 +1102,7 @@ void Swm__set_client_state(Client *client, int64_t state)
 {
 	int64_t data[] = { state, None };
 
-	XChangeProperty(g_swm.xconn, client->win,
+	XChangeProperty(g_swm.ctx.xconn, client->win,
 			g_swm.wmatom[SlackerDefaultAtom_WMState],
 			g_swm.wmatom[SlackerDefaultAtom_WMState], 32,
 			PropModeReplace, (unsigned char *)data, 2);
@@ -1107,7 +1119,7 @@ bool Swm__send_event(Client *client, Atom proto)
 
 	// Returns the list of atoms stored in the WM_PROTOCOLS property on the specified window.
 	// These atoms describe window manager protocols in which the owner of this window is willing to participate.
-	if (XGetWMProtocols(g_swm.xconn, client->win, &protocols,
+	if (XGetWMProtocols(g_swm.ctx.xconn, client->win, &protocols,
 			    &number_of_protocols)) {
 		while (!exists && number_of_protocols--) {
 			exists = protocols[number_of_protocols] == proto;
@@ -1128,7 +1140,8 @@ bool Swm__send_event(Client *client, Atom proto)
 		// The XSendEvent() function identifies the destination window,
 		// determines which clients should receive the specified events,
 		// and ignores any active grabs.
-		XSendEvent(g_swm.xconn, client->win, False, NoEventMask, &ev);
+		XSendEvent(g_swm.ctx.xconn, client->win, False, NoEventMask,
+			   &ev);
 	}
 	return exists;
 }
@@ -1136,9 +1149,9 @@ bool Swm__send_event(Client *client, Atom proto)
 void Swm__setfocus(Client *client)
 {
 	if (!client->neverfocus) {
-		XSetInputFocus(g_swm.xconn, client->win, RevertToPointerRoot,
-			       CurrentTime);
-		XChangeProperty(g_swm.xconn, g_swm.root_wid,
+		XSetInputFocus(g_swm.ctx.xconn, client->win,
+			       RevertToPointerRoot, CurrentTime);
+		XChangeProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 				g_swm.netatom[SlackerEWMHAtom_NetActiveWindow],
 				XA_WINDOW, 32, PropModeReplace,
 				(unsigned char *)&(client->win), 1);
@@ -1151,7 +1164,7 @@ void Swm__setfullscreen(Client *client, int32_t fullscreen)
 	// TODO: Refactor: should be a Client__ function
 	if (fullscreen && !client->isfullscreen) {
 		XChangeProperty(
-			g_swm.xconn, client->win,
+			g_swm.ctx.xconn, client->win,
 			g_swm.netatom[SlackerEWMHAtom_NetWMState], XA_ATOM, 32,
 			PropModeReplace,
 			(unsigned char *)&g_swm
@@ -1164,9 +1177,9 @@ void Swm__setfullscreen(Client *client, int32_t fullscreen)
 		client->isfloating = 1;
 		Swm__resize_client(client, client->mon->mx, client->mon->my,
 				   client->mon->mw, client->mon->mh);
-		XRaiseWindow(g_swm.xconn, client->win);
+		XRaiseWindow(g_swm.ctx.xconn, client->win);
 	} else if (!fullscreen && client->isfullscreen) {
-		XChangeProperty(g_swm.xconn, client->win,
+		XChangeProperty(g_swm.ctx.xconn, client->win,
 				g_swm.netatom[SlackerEWMHAtom_NetWMState],
 				XA_ATOM, 32, PropModeReplace,
 				(unsigned char *)0, 0);
@@ -1190,12 +1203,12 @@ void Swm__seturgent(Client *client, int urgent)
 	XWMHints *wmh = NULL;
 
 	client->isurgent = urgent;
-	if (!(wmh = XGetWMHints(g_swm.xconn, client->win))) {
+	if (!(wmh = XGetWMHints(g_swm.ctx.xconn, client->win))) {
 		return;
 	}
 	wmh->flags = urgent ? (wmh->flags | XUrgencyHint) :
 			      (wmh->flags & ~XUrgencyHint);
-	XSetWMHints(g_swm.xconn, client->win, wmh);
+	XSetWMHints(g_swm.ctx.xconn, client->win, wmh);
 	XFree(wmh);
 }
 
@@ -1207,7 +1220,7 @@ void Swm__showhide(Client *client)
 	}
 	if (ISVISIBLE(client)) {
 		// Show clients top down
-		XMoveWindow(g_swm.xconn, client->win, client->x, client->y);
+		XMoveWindow(g_swm.ctx.xconn, client->win, client->x, client->y);
 		if ((!client->mon->layouts[client->mon->selected_layout]
 			      ->handler ||
 		     client->isfloating) &&
@@ -1218,7 +1231,7 @@ void Swm__showhide(Client *client)
 	} else {
 		// Hide clients bottom up
 		Swm__showhide(client->stack_next);
-		XMoveWindow(g_swm.xconn, client->win, WIDTH(client) * -2,
+		XMoveWindow(g_swm.ctx.xconn, client->win, WIDTH(client) * -2,
 			    client->y);
 	}
 }
@@ -1231,13 +1244,13 @@ void Swm__unfocus(Client *client, bool setfocus)
 
 	Swm__grab_buttons(client, false);
 	XSetWindowBorder(
-		g_swm.xconn, client->win,
+		g_swm.ctx.xconn, client->win,
 		g_swm.scheme[SlackerColorscheme_Norm][ColBorder].pixel);
 
 	if (setfocus) {
-		XSetInputFocus(g_swm.xconn, g_swm.root_wid, RevertToPointerRoot,
-			       CurrentTime);
-		XDeleteProperty(g_swm.xconn, g_swm.root_wid,
+		XSetInputFocus(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
+			       RevertToPointerRoot, CurrentTime);
+		XDeleteProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 				g_swm.netatom[SlackerEWMHAtom_NetActiveWindow]);
 	}
 }
@@ -1250,19 +1263,21 @@ void Swm__unmanage(Client *client, bool destroyed)
 	if (!destroyed) {
 		wc.border_width = client->oldbw;
 		// Avoid race conditions
-		XGrabServer(g_swm.xconn);
+		XGrabServer(g_swm.ctx.xconn);
 		// Set a dummy error handler function
 		XSetErrorHandler(xerrordummy);
 		// Pass the client window id for input selection
-		XSelectInput(g_swm.xconn, client->win, NoEventMask);
+		XSelectInput(g_swm.ctx.xconn, client->win, NoEventMask);
 		// Restore the border
-		XConfigureWindow(g_swm.xconn, client->win, CWBorderWidth, &wc);
+		XConfigureWindow(g_swm.ctx.xconn, client->win, CWBorderWidth,
+				 &wc);
 		// Ungrab all buttons
-		XUngrabButton(g_swm.xconn, AnyButton, AnyModifier, client->win);
+		XUngrabButton(g_swm.ctx.xconn, AnyButton, AnyModifier,
+			      client->win);
 		Swm__set_client_state(client, WithdrawnState);
-		XSync(g_swm.xconn, False);
+		XSync(g_swm.ctx.xconn, False);
 		XSetErrorHandler(Swm__xerror_handler);
-		XUngrabServer(g_swm.xconn);
+		XUngrabServer(g_swm.ctx.xconn);
 	}
 
 	Client__delete(client);
@@ -1288,16 +1303,17 @@ void Swm__updatebars(void)
 		}
 		// The bar does not exist, create it
 		temp_monitor->barwin = XCreateWindow(
-			g_swm.xconn, g_swm.root_wid, temp_monitor->wx,
+			g_swm.ctx.xconn, g_swm.ctx.xroot_id, temp_monitor->wx,
 			temp_monitor->by, temp_monitor->ww, g_swm.bar_height, 0,
-			DefaultDepth(g_swm.xconn, g_swm.screen), CopyFromParent,
-			DefaultVisual(g_swm.xconn, g_swm.screen),
+			DefaultDepth(g_swm.ctx.xconn, g_swm.ctx.xscreen_id),
+			CopyFromParent,
+			DefaultVisual(g_swm.ctx.xconn, g_swm.ctx.xscreen_id),
 			CWOverrideRedirect | CWBackPixmap | CWEventMask, &wa);
 
-		XDefineCursor(g_swm.xconn, temp_monitor->barwin,
+		XDefineCursor(g_swm.ctx.xconn, temp_monitor->barwin,
 			      g_swm.cursor[SlackerCursorState_Normal]->cursor);
-		XMapRaised(g_swm.xconn, temp_monitor->barwin);
-		XSetClassHint(g_swm.xconn, temp_monitor->barwin, &ch);
+		XMapRaised(g_swm.ctx.xconn, temp_monitor->barwin);
+		XSetClassHint(g_swm.ctx.xconn, temp_monitor->barwin, &ch);
 	}
 }
 
@@ -1306,7 +1322,7 @@ void Swm__update_client_list(void)
 	Client *temp_client = NULL;
 	Monitor *temp_monitor = NULL;
 
-	XDeleteProperty(g_swm.xconn, g_swm.root_wid,
+	XDeleteProperty(g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 			g_swm.netatom[SlackerEWMHAtom_NetClientList]);
 
 	// For all monitors
@@ -1316,7 +1332,7 @@ void Swm__update_client_list(void)
 		for (temp_client = temp_monitor->client_list; temp_client;
 		     temp_client = temp_client->next) {
 			XChangeProperty(
-				g_swm.xconn, g_swm.root_wid,
+				g_swm.ctx.xconn, g_swm.ctx.xroot_id,
 				g_swm.netatom[SlackerEWMHAtom_NetClientList],
 				XA_WINDOW, 32, PropModeAppend,
 				(unsigned char *)&(temp_client->win), 1);
@@ -1333,19 +1349,17 @@ bool Swm__updategeom(void)
 		g_swm.monitor_list = Monitor__new();
 	}
 
-	if (g_swm.monitor_list->mw != g_swm.screen_width ||
-	    g_swm.monitor_list->mh != g_swm.screen_height) {
+	if (g_swm.monitor_list->mw != g_swm.ctx.xscreen_width ||
+	    g_swm.monitor_list->mh != g_swm.ctx.xscreen_height) {
 		dirty = true;
-		g_swm.monitor_list->mw = g_swm.monitor_list->ww =
-			g_swm.screen_width;
-		g_swm.monitor_list->mh = g_swm.monitor_list->wh =
-			g_swm.screen_height;
+		g_swm.monitor_list->mw = g_swm.monitor_list->ww = g_swm.ctx.xscreen_width;
+		g_swm.monitor_list->mh = g_swm.monitor_list->wh = g_swm.ctx.xscreen_height;
 		Monitor__updatebarpos(g_swm.monitor_list);
 	}
 
 	if (dirty) {
 		g_swm.selected_monitor = g_swm.monitor_list;
-		g_swm.selected_monitor = Swm__wintomon(g_swm.root_wid);
+		g_swm.selected_monitor = Swm__wintomon(g_swm.ctx.xroot_id);
 	}
 	return dirty;
 }
@@ -1354,11 +1368,11 @@ void Swm__update_numlock_mask(void)
 {
 	g_swm.numlockmask = 0;
 
-	XModifierKeymap *modmap = XGetModifierMapping(g_swm.xconn);
+	XModifierKeymap *modmap = XGetModifierMapping(g_swm.ctx.xconn);
 	for (uint32_t i = 0; i < 8; ++i) {
 		for (uint32_t j = 0; j < modmap->max_keypermod; ++j)
 			if (modmap->modifiermap[i * modmap->max_keypermod + j] ==
-			    XKeysymToKeycode(g_swm.xconn, XK_Num_Lock)) {
+			    XKeysymToKeycode(g_swm.ctx.xconn, XK_Num_Lock)) {
 				g_swm.numlockmask = (1 << i);
 			}
 	}
@@ -1368,8 +1382,8 @@ void Swm__update_numlock_mask(void)
 
 void Swm__update_status(void)
 {
-	if (!Swm__get_text_prop(g_swm.root_wid, XA_WM_NAME, g_swm.status_text,
-				sizeof(g_swm.status_text))) {
+	if (!Swm__get_text_prop(g_swm.ctx.xroot_id, XA_WM_NAME,
+				g_swm.status_text, sizeof(g_swm.status_text))) {
 		strcpy(g_swm.status_text, "swm-" VERSION);
 	}
 	Swm__drawbar(g_swm.selected_monitor);
@@ -1411,11 +1425,11 @@ void Swm__update_wmhints(Client *client)
 {
 	XWMHints *wmh;
 
-	if ((wmh = XGetWMHints(g_swm.xconn, client->win))) {
+	if ((wmh = XGetWMHints(g_swm.ctx.xconn, client->win))) {
 		if (client == g_swm.selected_monitor->selected_client &&
 		    wmh->flags & XUrgencyHint) {
 			wmh->flags &= ~XUrgencyHint;
-			XSetWMHints(g_swm.xconn, client->win, wmh);
+			XSetWMHints(g_swm.ctx.xconn, client->win, wmh);
 		} else {
 			client->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
 		}
@@ -1454,7 +1468,7 @@ Monitor *Swm__wintomon(Window w_id)
 	Client *temp_client = NULL;
 	Monitor *temp_monitor = NULL;
 
-	if (w_id == g_swm.root_wid && Swm__getrootptr(&x, &y)) {
+	if (w_id == g_swm.ctx.xroot_id && Swm__getrootptr(&x, &y)) {
 		return Swm__rect_to_monitor(x, y, 1, 1);
 	}
 

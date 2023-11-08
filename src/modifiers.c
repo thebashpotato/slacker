@@ -18,14 +18,14 @@ void Swm__kill_client(const Arg *arg)
 
 	if (!Swm__send_event(g_swm.selected_monitor->selected_client,
 			     g_swm.wmatom[SlackerDefaultAtom_WMDelete])) {
-		XGrabServer(g_swm.xconn);
+		XGrabServer(g_swm.ctx.xconn);
 		XSetErrorHandler(xerrordummy);
-		XSetCloseDownMode(g_swm.xconn, DestroyAll);
-		XKillClient(g_swm.xconn,
+		XSetCloseDownMode(g_swm.ctx.xconn, DestroyAll);
+		XKillClient(g_swm.ctx.xconn,
 			    g_swm.selected_monitor->selected_client->win);
-		XSync(g_swm.xconn, False);
+		XSync(g_swm.ctx.xconn, False);
 		XSetErrorHandler(Swm__xerror_handler);
-		XUngrabServer(g_swm.xconn);
+		XUngrabServer(g_swm.ctx.xconn);
 	}
 }
 
@@ -63,7 +63,7 @@ void Swm__move_with_mouse(const Arg *arg)
 	ocx = temp_client->x;
 	ocy = temp_client->y;
 
-	if (XGrabPointer(g_swm.xconn, g_swm.root_wid, False, MOUSEMASK,
+	if (XGrabPointer(g_swm.ctx.xconn, g_swm.ctx.xroot_id, False, MOUSEMASK,
 			 GrabModeAsync, GrabModeAsync, None,
 			 g_swm.cursor[SlackerCursorState_Move]->cursor,
 			 CurrentTime) != GrabSuccess) {
@@ -76,7 +76,7 @@ void Swm__move_with_mouse(const Arg *arg)
 	}
 
 	do {
-		XMaskEvent(g_swm.xconn,
+		XMaskEvent(g_swm.ctx.xconn,
 			   MOUSEMASK | ExposureMask | SubstructureRedirectMask,
 			   &ev);
 		switch (ev.type) {
@@ -141,7 +141,7 @@ void Swm__move_with_mouse(const Arg *arg)
 		}
 	} while (ev.type != ButtonRelease);
 
-	XUngrabPointer(g_swm.xconn, CurrentTime);
+	XUngrabPointer(g_swm.ctx.xconn, CurrentTime);
 
 	if ((temp_monitor = Swm__rect_to_monitor(
 		     temp_client->x, temp_client->y, temp_client->w,
@@ -183,18 +183,18 @@ void Swm__resize_client_with_mouse(const Arg *arg)
 	ocx = temp_client->x;
 	ocy = temp_client->y;
 
-	if (XGrabPointer(g_swm.xconn, g_swm.root_wid, False, MOUSEMASK,
+	if (XGrabPointer(g_swm.ctx.xconn, g_swm.ctx.xroot_id, False, MOUSEMASK,
 			 GrabModeAsync, GrabModeAsync, None,
 			 g_swm.cursor[SlackerCursorState_Resize]->cursor,
 			 CurrentTime) != GrabSuccess) {
 		return;
 	}
 
-	XWarpPointer(g_swm.xconn, None, temp_client->win, 0, 0, 0, 0,
+	XWarpPointer(g_swm.ctx.xconn, None, temp_client->win, 0, 0, 0, 0,
 		     temp_client->w + temp_client->bw - 1,
 		     temp_client->h + temp_client->bw - 1);
 	do {
-		XMaskEvent(g_swm.xconn,
+		XMaskEvent(g_swm.ctx.xconn,
 			   MOUSEMASK | ExposureMask | SubstructureRedirectMask,
 			   &ev);
 
@@ -247,13 +247,13 @@ void Swm__resize_client_with_mouse(const Arg *arg)
 		}
 	} while (ev.type != ButtonRelease);
 
-	XWarpPointer(g_swm.xconn, None, temp_client->win, 0, 0, 0, 0,
+	XWarpPointer(g_swm.ctx.xconn, None, temp_client->win, 0, 0, 0, 0,
 		     temp_client->w + (temp_client->bw - 1),
 		     temp_client->h + (temp_client->bw - 1));
 
-	XUngrabPointer(g_swm.xconn, CurrentTime);
+	XUngrabPointer(g_swm.ctx.xconn, CurrentTime);
 
-	while (XCheckMaskEvent(g_swm.xconn, EnterWindowMask, &ev)) {
+	while (XCheckMaskEvent(g_swm.ctx.xconn, EnterWindowMask, &ev)) {
 		;
 	}
 
@@ -317,8 +317,8 @@ void Swm__spawn(const Arg *arg)
 	}
 
 	if (fork() == 0) {
-		if (g_swm.xconn) {
-			close(ConnectionNumber(g_swm.xconn));
+		if (g_swm.ctx.xconn) {
+			close(ConnectionNumber(g_swm.ctx.xconn));
 		}
 		setsid();
 
@@ -361,7 +361,7 @@ void Swm__togglebar(const Arg *arg)
 
 	sm->showbar = !sm->showbar;
 	Monitor__updatebarpos(sm);
-	XMoveResizeWindow(g_swm.xconn, sm->barwin, sm->wx, sm->by, sm->ww,
+	XMoveResizeWindow(g_swm.ctx.xconn, sm->barwin, sm->wx, sm->by, sm->ww,
 			  g_swm.bar_height);
 	Swm__arrange_monitors(sm);
 }

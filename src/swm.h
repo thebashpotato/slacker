@@ -6,6 +6,7 @@
 #include <X11/Xlib.h>
 
 // Standard Libraries
+#include <bits/stdint-intn.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -45,6 +46,38 @@
 ///					Definitions
 //////////////////////////////////////////////////////
 
+typedef struct Ctx Ctx;
+
+/// @brief Holds the X11 context
+struct Ctx {
+	/// X screen id
+	int32_t xscreen_id;
+	/// X display screen geometry width
+	int32_t xscreen_width;
+	/// X display screen geometry height
+	int32_t xscreen_height;
+	/// Root window id
+	Window xroot_id;
+	/// X display conenction
+	Display *xconn;
+	/// _NET_SUPPORTING_WM_CHECK window id for the EWMH
+	/// (Extended Window Manager Hints) protocol
+	Window xewmh_id;
+};
+
+/// @brief Constructor for Ctx
+///
+/// @details Makes a connection to the X server, gets the screen id,
+/// screen width and height from X.
+///
+/// @throw If an X connection cannot be made, swm will exit.
+///
+/// @returns A fully iniiialized context for an X client.
+Ctx Ctx__new(void);
+
+/// @brief Closes the X server connection
+void Ctx__delete(Ctx *ctx);
+
 typedef struct Swm Swm;
 typedef int32_t (*SlackerXErrorHandler)(Display *, XErrorEvent *);
 
@@ -53,14 +86,10 @@ typedef int32_t (*SlackerXErrorHandler)(Display *, XErrorEvent *);
 /// @details This struct is used to store all the global state of the window manager, and uses
 /// all of the other data structures in the source tree.
 struct Swm {
+	/// X11 display and screen context
+	Ctx ctx;
 	/// Status text that is displayed in the top right corner of the bar
 	char status_text[MAX_STATUS_BAR_TEXT_LEN];
-	/// X screen id
-	int32_t screen;
-	/// X display screen geometry width
-	int32_t screen_width;
-	/// X display screen geometry height
-	int32_t screen_height;
 	/// Bar height
 	int32_t bar_height;
 	/// Sum of left and right padding for text
@@ -79,19 +108,12 @@ struct Swm {
 	SlackerCursor *cursor[SlackerCursorState_Last];
 	/// Slacker color schemes
 	SlackerColor **scheme;
-	/// X display conenction
-	Display *xconn;
 	/// Drawable abstraction
 	Drw *draw;
 	/// Linked list of all connected monitors
 	Monitor *monitor_list;
 	/// Currently selected monitor
 	Monitor *selected_monitor;
-	/// Root window id
-	Window root_wid;
-	/// _NET_SUPPORTING_WM_CHECK window id for the EWMH
-	/// (Extended Window Manager Hints) protocol
-	Window ewmh_support_wid;
 };
 
 /// @brief Global mutable instance of the slacker window manager.
