@@ -16,6 +16,6 @@ int32_t xerrordummy(Display *dpy, XErrorEvent *ee)
 /// is already running
 int32_t xerrorstart(Display *dpy, XErrorEvent *ee)
 {
-	die("slacker: another window manager is already running");
+	die("slacker: another window manager is already running\n");
 	return -1;
 }

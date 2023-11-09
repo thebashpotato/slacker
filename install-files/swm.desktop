@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0.0
+Name=swm
+Comment=Slacker tiling window manager
+Exec=/usr/local/bin/swm
+Type=XSession

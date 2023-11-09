@@ -13,10 +13,10 @@
 /// ## Goals
 ///
 /// 1.	Restructure and clean up the entire code base to make it more maintainable,
-/// 	and easier to expand upon while also easier to read/understand and contribute to for (new comers).
-/// 	This means the suckless patching approach will not work, since the code-base is so different.
-///		Because of this, swm will provide a more feature rich and batteries-included
-///		experience out of the box. These features will be included but not limited to:
+///		 	and easier to expand upon while also easier to read/understand and contribute to for (new comers).
+/// 	 	This means the suckless patching approach will not work, since the code-base is so different.
+///		 	Because of this, swm will provide a more feature rich and batteries-included
+///		 	experience out of the box. These features will be included but not limited to:
 ///
 ///		- Sys tray support
 ///		- Dwm blocks like support (rather baked into the code and not a separate program)
@@ -26,16 +26,16 @@
 /// 	- More will be added as I think of them, or as other people request.
 ///
 /// 2.	There will be no arbitary limitation on the source lines of code (SLOC) like dwm has or had.
-/// 	The project will get as big as it needs to be to provide a good user experience and at the very least the features I want.
-/// 	The executable size is 67K, I mean come on, if you think that is outrageous, you need to give your balls a tug.
+///			The project will get as big as it needs to be to provide a good user experience and at the very least the features I want.
+///			The executable size is 67K, I mean come on, if you think that is outrageous, you need to give your balls a tug.
 ///
 /// 3. 	There will be a nice bloated javascript companion documentation site, where the data structures, control flow
-///		will be defined and explained. I will also be adding tutorials on how to add common dwm patches to swm, that it does not have out of the box.
-///		This is in an effort to help people learn C, client side X11 programming and to "demystify" the software development process as it
-/// 	relates to the latter and suckless-style software in general.
+///			will be defined and explained. I will also be adding tutorials on how to add common dwm patches to swm, that it does not have out of the box.
+///			This is in an effort to help people learn C, client side X11 programming and to "demystify" the software development process as it
+/// 		relates to the latter and suckless-style software in general.
 ///
 /// 4. 	The project does not aim to be "small and elitist" (although it will likely stay small because X11 is dead),
-/// 	and doesn't care about stupid questions. Stupid questions exist, because we all start somewhere.
+///			and doesn't care about stupid questions. Stupid questions exist, because we all start somewhere.
 
 // Standard Libraries
 #include <locale.h>
@@ -61,9 +61,15 @@ int main(int argc, char **argv)
 			fputs("warning: no locale support\n", stderr);
 		}
 
+
+		// pid_t *autostart_pids = NULL;
+		// size_t autostart_len = 0;
 		Swm__startup();
+		// autostart(autostart_pids, &autostart_len);
 		Swm__run();
 		Swm__delete();
+
+		// autokill(autostart_pids, &autostart_len);
 	}
 
 	return EXIT_SUCCESS;

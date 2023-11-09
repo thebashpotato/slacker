@@ -41,4 +41,13 @@ void *ecalloc(size_t nmemb, size_t size);
 /// @details Private function, only called once in `Slacker__init`
 void clean_environment(void);
 
+/// @brief Execute startup commands
+///
+/// @param autostart_pids: Array of process IDs, remembered for shutdown.
+/// @param autostart_len: Length of the array of process IDs.
+void autostart(pid_t *autostart_pids, size_t *autostart_len);
+
+/// @brief Kill the autostart pids on system shutdown
+void autokill(pid_t *autostart_pids, size_t *autostart_len);
+
 #endif // SLACKER_UTILS_H

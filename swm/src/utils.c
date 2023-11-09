@@ -4,10 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 // Slacker Headers
-#include "utils.h"
+#include "config.h"
 #include "error.h"
+#include "utils.h"
 
 const char CLIENT_WINDOW_BROKEN[] = "broken";
 
@@ -51,5 +53,47 @@ void clean_environment(void)
 	// Clean up any zombies (inherited from .xinitrc etc) immediately
 	while (waitpid(-1, NULL, WNOHANG) > 0) {
 		;
+	}
+}
+
+void autostart(pid_t *autostart_pids, size_t *autostart_len)
+{
+	const char *const *p;
+	size_t i = 0;
+
+	// count the number of commands
+	for (p = G_AUTOSTART_COMMANDS; *p; autostart_len++, p++) {
+		while (*++p) {
+			;
+		}
+	}
+
+	// FIXME: Switch to ecalloc
+	do {
+		autostart_pids = malloc(*autostart_len * sizeof(pid_t));
+	} while (autostart_pids == NULL);
+
+	for (p = G_AUTOSTART_COMMANDS; *p; i++, p++) {
+		if ((autostart_pids[i] == fork()) == 0) {
+			setsid();
+			execvp(*p, (char *const *)p);
+			fprintf(stderr, "slacker: execvp %s", *p);
+			perror(" failed");
+			_exit(EXIT_FAILURE);
+		}
+		// skip arguments
+		while (*++p) {
+			;
+		}
+	}
+}
+
+void autokill(pid_t *autostart_pids, size_t *autostart_len)
+{
+	for (size_t i = 0; i < *autostart_len; i++) {
+		if (autostart_pids[i] > 0) {
+			kill(autostart_pids[i], SIGTERM);
+			waitpid(autostart_pids[i], NULL, 0);
+		}
 	}
 }

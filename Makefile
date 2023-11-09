@@ -1,36 +1,25 @@
-# Slacker Window Manager. Inspired by the Dynamic Window Manger
+# Slacker X11 Environment Workspace Makefile.
+# Dispatches commands to all lower level Makefiles.
+# Pure makefile based build system written from scratch.. come at me bro.
 
-TARGET = swm
-SRC_DIR = src
-BUILD_DIR = build
-OBJ_DIR = $(BUILD_DIR)/obj
-BIN_DIR = $(BUILD_DIR)/bin
-DIST_DIR = $(BUILD_DIR)/dist
+PROJECT_ROOT=$(shell pwd)
+BUILD_DIR:=$(PROJECT_ROOT)/build
 
-include make/compiler_settings.mk
 include make/canned_recipes.mk
+include make/settings.mk
 
-SRCS := $(wildcard $(SRC_DIR)/*.c)
-OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
+swm:
+	@make -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
 
-all: options setup $(TARGET)
+swm-dev: clean
+	@bear -- make -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
 
-options:
-	@echo ========================
-	@echo $(TARGET) build options:
-	@echo "CFLAGS  = $(CFLAGS)"
-	@echo "LDFLAGS = $(LDFLAGS)"
-	@echo "CC      = $(CC)"
-	@echo ========================
+swm-debug: clean
+	@bear -- make -C swm/ BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER) DEBUG=1
+	@$(call _embed,swm)
 
-setup:
-	@$(call _setup)
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c  $< -o $@
-
-$(TARGET): $(OBJ)
-	$(CC) -o $(BIN_DIR)/$@ $(OBJ) $(LDFLAGS)
+format:
+	@make -C swm/ format
 
 init:
 	@$(call _init)
@@ -38,20 +27,15 @@ init:
 init-dev:
 	@$(call _init_dev)
 
-install:
+install: swm
 	@$(call _install)
 
-embed:
-	@$(call _embed)
-
-format:
-	@$(call _format)
+uninstall:
+	@$(call _uninstall)
 
 clean:
 	@$(call _clean)
 
-.PHONY: all options init init-dev embed clean
+.PHONY: swm swm-dev swm-debug format init init-dev install uninstall clean
 
-# This magic snippet from is what enables the programmer to write
-# bash scripts in canned recipes, without all the annoying escapes.
 .ONESHELL:

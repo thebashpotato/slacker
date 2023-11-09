@@ -27,14 +27,18 @@ An X11 Tiling Window Manager for GNU/Linux and BSD's.
 
 ```bash
 # Installs the X11 libraries, dunst, volumeicon-alsa, network-manager, feh, picom,
-# for apt-get based systems.
-sudo make init
+# for apt-get based systems. (will prompt for sudo)
+make init
 
 # Compiles the the software
 make all
 
 # Install's source code, desktop file, picom file, etc.
-sudo make install
+# (Will prompt for sudo and install all necessary files from the `install-files` directory)
+make install
+
+# Uninstall to system
+make uninstall
 ```
 
 ## Development
@@ -43,10 +47,12 @@ sudo make install
 
 ```bash
 # Install all X11 libraries and development tools for apt-get based systems.
-sudo make init-dev
+# (will prompt for sudo)
+make init-dev
 
 # Run the window manager in an embedded X window for testing and development
-make embed
+make swm-dev
+
 ```
 
 > The following utilities are what a C programmer using Makefiles targeting
@@ -54,19 +60,22 @@ make embed
 > installed with the above init-dev command.
 
 1. `bear` => Generates a `compile_commands.json` file so your
-    language service provider (clangd) will know what the hell is going on.
-    - Usage: **bear -- make all**
+   language service provider (clangd) will know what the hell is going on.
+
+   - Usage: **bear -- make all**
 
 2. `Xephyr` => Allows the programmer to run the Window Manager in a nested X session
-    so you don't have to log out , and back into the actual window manager. Perfect for developing, debugging and testing.
-    - Usage: **make embed**
+   so you don't have to log out , and back into the actual window manager. Perfect for developing, debugging and testing.
+
+   - Usage: **make embed**
 
 3. `clang-format` => Formats all source code files according the the root .clang-format file.
-    This project uses the Linux kernel clang-format.
-    - Usage **make format**
+   This project uses the Linux kernel clang-format.
+
+   - Usage **make format**
 
 4. `clangd` => Modern C/C++ code analyzing to editors.
-    - Usage: Vim, Emacs, Vscode and Jetbrains all support it and handle it for you.
+   - Usage: Vim, Emacs, Vscode and Jetbrains all support it and handle it for you.
 
 ### Debugging
 
@@ -78,9 +87,10 @@ You will also need to run the following commands.
 
 `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`
 
-> This is the compile command, there is a 15 second pause to give time to attach the debugger to the process
+> This is the compile command, there is a 15 second pause to give time to attach the debugger to the process,
+> while compiled in debug mode, all debugging messages from `swm` will be printed to stdout.
 
-`make clean && bear -- make DEBUG=1 && make embed`
+`make swm-debug`
 
 ## Maintainers
 
