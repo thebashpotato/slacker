@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: initialize
-      run: sudo make init
-    - name: compile
-      run: make all
+    - name: Install dependencies
+      run: make init
+    - name: Compile swm
+      run: make swm
