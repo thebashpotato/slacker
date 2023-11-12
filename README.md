@@ -33,12 +33,11 @@ make init
 # Compiles the the software
 make all
 
-# Install's source code, desktop file, picom file, etc.
-# (Will prompt for sudo and install all necessary files from the `install-files` directory)
-make install
+# Install's code, desktop file, picom file, etc.
+sudo make install
 
 # Uninstall to system
-make uninstall
+sudo make uninstall
 ```
 
 ## Development
@@ -47,8 +46,7 @@ make uninstall
 
 ```bash
 # Install all X11 libraries and development tools for apt-get based systems.
-# (will prompt for sudo)
-make init-dev
+sudo make init-dev
 
 # Run the window manager in an embedded X window for testing and development
 make swm-dev

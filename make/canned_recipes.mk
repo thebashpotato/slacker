@@ -41,7 +41,7 @@ endef
 
 define _init =
 	if command -v apt 1>/dev/null 2>&1; then
-		sudo apt-get install libx11-dev libxft-dev picom feh dunst network-manager volumeicon-alsa -y
+		apt-get install libx11-dev libxft-dev picom feh dunst network-manager volumeicon-alsa -y
 	else
 		echo "You are not on a Debian based system, make a pull request for your package manager"
 	fi
@@ -50,7 +50,7 @@ endef
 
 define _init_dev =
 	if command -v apt 1>/dev/null 2>&1; then
-		sudo apt-get install libx11-dev libxft-dev bear clang clangd clang-format xserver-xephyr -y
+		apt-get install libx11-dev libxft-dev bear clang clangd clang-format xserver-xephyr -y
 	else
 		echo "You are not on a Debian based system, make a pull request for your package manager"
 	fi
@@ -74,10 +74,10 @@ define _install =
 		mkdir -p $(CONFIG_DIR)/picom
 	fi
 
-	sudo install -v -Dm755 $(BUILD_DIR)/bin/swm $(DESTDIR)$(PREFIX)/bin
-	sudo install -v -D $(PROJECT_ROOT)/install-files/background.jpg $(DESTDIR)$(SLACKER_DIR)/
-	sudo install -v -D $(PROJECT_ROOT)/install-files/swm.desktop $(DESTDIR)/usr/share/xsessions/
-	install -v $(PROJECT_ROOT)/install-files/picom/picom.conf $(CONFIG_DIR)/picom/
+	install -v -Dm755 $(BUILD_DIR)/bin/swm $(DESTDIR)$(PREFIX)/bin
+	install -v -D $(PROJECT_ROOT)/install-files/background.jpg $(DESTDIR)$(SLACKER_DIR)/
+	install -v -D $(PROJECT_ROOT)/install-files/swm.desktop $(DESTDIR)/usr/share/xsessions/
+	install -v $(PROJECT_ROOT)/install-files/picom/picom.conf $(DESTDIR)/etc/xdg
 endef
 
 
@@ -85,4 +85,5 @@ define _uninstall =
 	rm -vf $(DESTDIR)$(PREFIX)/bin/swm
 	rm -vrf $(DESTDIR)$(PREFIX)/share/slacker
 	rm -vf $(DESTDIR)/usr/share/xsessions/swm.desktop
+	rm -vf $(DESTDIR)/etc/xdg/picom.conf
 endef
