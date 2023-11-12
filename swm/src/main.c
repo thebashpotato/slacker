@@ -2,8 +2,8 @@
 ///
 /// ## Introduction
 ///
-/// 	Swm is an attempt at creating a more structually sound and concise version of dwm
-/// 	using straight forwward C design patterns, refactoring as much spaghetti code as possible, and using explicit naming conventions.
+/// 	Swm is an attempt at creating a more sound and concise version of dwm
+/// 	using straight forward C design patterns, refactoring as much spaghetti code as possible, and using explicit naming conventions.
 ///		Swm does not read a configuration file, but does rely on a configuration library where global variables can be updated.
 /// 	As far as the user is concerned they will still edit global variable values in a C config, its just in a different folder.
 /// 	The shared library approach will offer better code decoupling than the suckless approach, and will allow me to port other tools
@@ -43,12 +43,13 @@
 #include <unistd.h>
 
 // Slacker Headers
+#include "autostart.h"
 #include "utils.h"
 #include "swm.h"
 
 int main(int argc, char **argv)
 {
-	if (DEBUG == 1) {
+	if (DEBUG == true) {
 		printf("Running in debug mode, attach debugger to pid: '%d'\n",
 		       getpid());
 		//sleep(15);
@@ -61,15 +62,28 @@ int main(int argc, char **argv)
 			fputs("warning: no locale support\n", stderr);
 		}
 
+		clean_environment();
+		Autostart as = Autostart__new();
 
-		// pid_t *autostart_pids = NULL;
-		// size_t autostart_len = 0;
+		if (DEBUG == false) {
+			Autostart__add(&as, "xset r rate 200 60");
+			Autostart__add(&as, "setxkbmap -option ctrl:nocaps");
+			Autostart__add(&as, "picom");
+			Autostart__add(
+				&as,
+				"feh --bg-fill /usr/local/share/slacker/background.jpg");
+			Autostart__add(
+				&as,
+				"xrandr --output DisplayPort-0 --mode 3840x1080 --rate 143.85");
+
+			Autostart__exec(&as);
+		}
+
 		Swm__startup();
-		// autostart(autostart_pids, &autostart_len);
 		Swm__run();
 		Swm__delete();
-
-		// autokill(autostart_pids, &autostart_len);
+		Autostart__kill(&as);
+		clean_environment();
 	}
 
 	return EXIT_SUCCESS;

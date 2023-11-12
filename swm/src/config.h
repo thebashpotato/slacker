@@ -49,9 +49,6 @@ extern char G_DMENU_MONITOR[2];
 extern const char *G_DMENU_COMMAND[];
 extern const char *G_TERMINAL_COMMAND[];
 
-/// @brief Auto start programs
-extern const char *const G_AUTOSTART_COMMANDS[];
-
 /// @brief Custom KeyMap Bindings
 extern const KeyMap G_KEYBINDINGS[MAX_KEY_BINDINGS];
 

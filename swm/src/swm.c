@@ -311,9 +311,6 @@ void Swm__startup(void)
 {
 	XSetWindowAttributes wa;
 	if (!g_swm.is_running) {
-		// First, Clean up the environment inherited from the parent process
-		clean_environment();
-
 		// Initialize the main fields of slacker with sane defaults.
 		Swm__init();
 

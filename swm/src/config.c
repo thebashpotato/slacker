@@ -8,13 +8,13 @@ const uint32_t G_BORDER_PIXEL                   = 1;
 const uint32_t G_SNAP_PIXEL                     = 32;
 const int32_t G_SHOW_BAR                        = 1;
 const int32_t G_TOP_BAR                         = 1;
-const char G_USER_FONT[]                        = "CaskaydiaCove Nerd Font Mono:size=16";
-const char G_DMENU_FONT[]                       = "CaskaydiaCove Nerd Font Mono:size=16";
-const char G_COLORSCHEME_BACKGROUND[]           = "#111216";
-const char G_COLORSCHEME_BORDER[]               = "#6d6d6d";
-const char G_COLORSCHEME_FOREGROUND[]           = "#9e9e9e";
-const char G_COLORSCHEME_SECONDARY[]            = "#f0dada";
-const char G_COLORSCHEME_PRIMARY[]              = "#a32ea7";
+const char G_USER_FONT[]                        = "JetBrainsMono Nerd Font Mono:size=16";
+const char G_DMENU_FONT[]                       = "JetBrainsMono Nerd Font Mono:size=16";
+const char G_COLORSCHEME_BACKGROUND[]           = "#131313";
+const char G_COLORSCHEME_BORDER[]               = "#393939";
+const char G_COLORSCHEME_FOREGROUND[]           = "#dde1e6";
+const char G_COLORSCHEME_SECONDARY[]            = "#262626";
+const char G_COLORSCHEME_PRIMARY[]              = "#78a9ff";
 const float G_MASTER_FACTOR                     = 0.55;
 const int32_t G_MASTER_COUNT                    = 1;
 const int32_t G_RESIZE_HINTS                    = 1;
@@ -22,7 +22,6 @@ const int32_t G_LOCK_FULLSCREEN                 = 1;
 char G_DMENU_MONITOR[]                          = "0";
 const char *G_DMENU_COMMAND[]                   = {"dmenu_run", "-m", G_DMENU_MONITOR, "-fn", G_DMENU_FONT, "-nb", G_COLORSCHEME_BACKGROUND, "-nf", G_COLORSCHEME_FOREGROUND, "-sb", G_COLORSCHEME_PRIMARY, "-sf", G_COLORSCHEME_SECONDARY, NULL};
 const char *G_TERMINAL_COMMAND[]                = {"konsole", NULL};
-const char *const G_AUTOSTART_COMMANDS[]        = { "picom", NULL };
 
 const char *G_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS] = {
     // ================================================================================================

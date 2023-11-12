@@ -75,7 +75,6 @@ define _install =
 	fi
 
 	sudo install -v -Dm755 $(BUILD_DIR)/bin/swm $(DESTDIR)$(PREFIX)/bin
-	sudo install -v -Dm755 $(PROJECT_ROOT)/install-files/autostart.sh $(DESTDIR)$(SLACKER_DIR)/
 	sudo install -v -D $(PROJECT_ROOT)/install-files/background.jpg $(DESTDIR)$(SLACKER_DIR)/
 	sudo install -v -D $(PROJECT_ROOT)/install-files/swm.desktop $(DESTDIR)/usr/share/xsessions/
 	install -v $(PROJECT_ROOT)/install-files/picom/picom.conf $(CONFIG_DIR)/picom/

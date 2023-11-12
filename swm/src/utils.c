@@ -56,44 +56,23 @@ void clean_environment(void)
 	}
 }
 
-void autostart(pid_t *autostart_pids, size_t *autostart_len)
+int32_t system_exec(const char *cmdstring, pid_t *pid)
 {
-	const char *const *p;
-	size_t i = 0;
+	int32_t status = 0;
 
-	// count the number of commands
-	for (p = G_AUTOSTART_COMMANDS; *p; autostart_len++, p++) {
-		while (*++p) {
-			;
-		}
+	if (cmdstring == NULL) {
+		// always a command processor with UNIX
+		return (1);
 	}
 
-	// FIXME: Switch to ecalloc
-	do {
-		autostart_pids = malloc(*autostart_len * sizeof(pid_t));
-	} while (autostart_pids == NULL);
-
-	for (p = G_AUTOSTART_COMMANDS; *p; i++, p++) {
-		if ((autostart_pids[i] == fork()) == 0) {
-			setsid();
-			execvp(*p, (char *const *)p);
-			fprintf(stderr, "slacker: execvp %s", *p);
-			perror(" failed");
-			_exit(EXIT_FAILURE);
-		}
-		// skip arguments
-		while (*++p) {
-			;
-		}
+	if ((*pid = fork()) < 0) {
+		// probably out of processes
+		status = -1;
+	} else if (*pid == 0) {
+		execl("/bin/sh", "sh", "-c", cmdstring, (char *)0);
+		// execl error
+		_exit(127);
 	}
-}
 
-void autokill(pid_t *autostart_pids, size_t *autostart_len)
-{
-	for (size_t i = 0; i < *autostart_len; i++) {
-		if (autostart_pids[i] > 0) {
-			kill(autostart_pids[i], SIGTERM);
-			waitpid(autostart_pids[i], NULL, 0);
-		}
-	}
+	return status;
 }
