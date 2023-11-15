@@ -1,6 +1,9 @@
 #ifndef SWM_CONFIG_H
 #define SWM_CONFIG_H
 
+// X11 libraries
+#include <X11/X.h>
+
 // Standard Libraries
 #include <stdint.h>
 
@@ -58,7 +61,7 @@ extern const KeyMap G_KEYBINDINGS[MAX_KEY_BINDINGS];
 extern const Button G_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS];
 
 /// @brief KeyMap Definitions
-#define MODKEY Mod1Mask
+#define MODKEY Mod4Mask
 
 /// @brief Helper for defining the tag key bindings
 #define TAGKEYS(KEY, TAG)                                                  \
