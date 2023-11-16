@@ -74,5 +74,5 @@ int32_t system_exec(const char *cmdstring, pid_t *pid)
 		_exit(127);
 	}
 
-	return status;
+	return (status);
 }
