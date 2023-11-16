@@ -13,13 +13,13 @@
 /// @param `client` The client to log: client->log(client)
 static void Client__log(Client *this)
 {
-	if (DEBUG == 1) {
-		fprintf(stdout, "\nClient: %li\n", this->win);
-		fprintf(stdout, "Name: %s\n", this->name);
-		fprintf(stdout, "X: %d, Y: %i\n", this->x, this->y);
-		fprintf(stdout, "W: %d, H: %i\n", this->w, this->h);
-		fprintf(stdout, "Tag(s): %d\n", this->tags);
-	}
+#if (DEBUG == 1)
+	fprintf(stdout, "\nClient: %li\n", this->win);
+	fprintf(stdout, "Name: %s\n", this->name);
+	fprintf(stdout, "X: %d, Y: %i\n", this->x, this->y);
+	fprintf(stdout, "W: %d, H: %i\n", this->w, this->h);
+	fprintf(stdout, "Tag(s): %d\n", this->tags);
+#endif
 }
 
 Client *Client__new(Window w_id, XWindowAttributes *wa, Monitor *monitor)

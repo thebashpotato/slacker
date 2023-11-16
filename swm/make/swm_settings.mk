@@ -23,7 +23,7 @@ ARGUMENT_FLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=
 ifeq ($(DEBUG), 0)
 	CFLAGS = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${ARGUMENT_FLAGS}
 else
-	CFLAGS = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${ARGUMENT_FLAGS}
+	CFLAGS := -g -std=c99 -pedantic -Wall -O0 ${INCS} ${ARGUMENT_FLAGS}
 endif
 
 LDFLAGS = ${LIBS}

@@ -346,7 +346,7 @@ void Swm__event_keypress(XEvent *event)
 
 	for (uint32_t i = 0; i < LENGTH(G_KEYBINDINGS); ++i) {
 		if (keysym == G_KEYBINDINGS[i].keysym &&
-		    CLEANMASK(G_KEYBINDINGS[i].mod) == CLEANMASK(ev->state) &&
+      CLEANMASK(G_KEYBINDINGS[i].mod) == CLEANMASK(ev->state) &&
 		    G_KEYBINDINGS[i].handler) {
 			G_KEYBINDINGS[i].handler(&(G_KEYBINDINGS[i].arg));
 		}

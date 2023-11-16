@@ -49,11 +49,12 @@
 
 int main(int argc, char **argv)
 {
-	if (DEBUG == true) {
-		printf("Running in debug mode, attach debugger to pid: '%d'\n",
-		       getpid());
-		//sleep(15);
-	}
+#if (DEBUG == true)
+	printf("Running in debug mode, attach debugger to pid: '%d'\n",
+	       getpid());
+	//sleep(15);
+#endif
+
 	if (argc == 2 && !strcmp("-v", argv[1])) {
 		fprintf(stdout, "swm-" VERSION "\n");
 		return EXIT_SUCCESS;
@@ -65,26 +66,27 @@ int main(int argc, char **argv)
 		clean_environment();
 		Autostart as = Autostart__new();
 
-		if (DEBUG == false) {
-			Autostart__add(&as, "xset r rate 200 60");
-			Autostart__add(&as, "setxkbmap -option ctrl:nocaps");
-			Autostart__add(&as, "picom");
-			Autostart__add(
-				&as,
-				"feh --bg-fill /usr/local/share/slacker/background.jpg");
+#if (DEBUG == false)
+		printf("Running in release mode\n");
+		Autostart__add(&as, "xset r rate 200 60");
+		Autostart__add(&as, "setxkbmap -option ctrl:nocaps");
+		Autostart__add(&as, "picom");
+		Autostart__add(
+			&as,
+			"feh --bg-fill /usr/local/share/slacker/background.jpg");
 
-			// NOTE: Example for ultra wide monitor on Display port (GPU) with 144hz refresh rate
-			Autostart__add(
-				&as,
-				"xrandr --output DisplayPort-0 --mode 3840x1080 --rate 143.85");
+		// NOTE: Example for ultra wide monitor on Display port (GPU) with 144hz refresh rate
+		Autostart__add(
+			&as,
+			"xrandr --output DisplayPort-0 --mode 3840x1080 --rate 143.85");
 
-			// NOTE: Example for built-in laptop screen for Dell xps 13
-			//Autostart__add(
-			//	&as,
-			//	"xrandr --output eDP-1 --mode 1920x1200 --rate 59.95")
+		// NOTE: Example for built-in laptop screen for Dell xps 13
+		//Autostart__add(
+		//	&as,
+		//	"xrandr --output eDP-1 --mode 1920x1200 --rate 59.95")
 
-			Autostart__exec(&as);
-		}
+		Autostart__exec(&as);
+#endif
 
 		Swm__startup();
 		Swm__run();

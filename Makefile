@@ -9,17 +9,17 @@ include make/canned_recipes.mk
 include make/settings.mk
 
 swm:
-	@make -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
+	@$(MAKE) -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
 
 swm-dev: clean
-	@bear -- make -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
+	@bear -- $(MAKE) -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
 
 swm-debug: clean
-	@bear -- make -C swm/ BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER) DEBUG=1
+	@bear -- $(MAKE) -C swm/ BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER) DEBUG=1
 	@$(call _embed,swm)
 
 format:
-	@make -C swm/ format
+	@$(MAKE) -C swm/ format
 
 init:
 	@$(call _init)
