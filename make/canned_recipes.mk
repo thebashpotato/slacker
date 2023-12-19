@@ -42,6 +42,8 @@ endef
 define _init =
 	if command -v apt 1>/dev/null 2>&1; then
 		apt-get install libx11-dev libxft-dev picom feh dunst network-manager volumeicon-alsa -y
+	elif command -v pacman 1>/dev/null 2>&1; then
+		pacman -S libx11 libxft picom feh dunst network-manager-applet volumeicon --noconfirm
 	else
 		echo "You are not on a Debian based system, make a pull request for your package manager"
 	fi
@@ -51,8 +53,10 @@ endef
 define _init_dev =
 	if command -v apt 1>/dev/null 2>&1; then
 		apt-get install libx11-dev libxft-dev bear clang clangd clang-format xserver-xephyr -y
+	elif command -v pacman 1>/dev/null 2>&1; then
+		pacman -S libx11 libxft bear clang xorg-server-xephyr --noconfirm
 	else
-		echo "You are not on a Debian based system, make a pull request for your package manager"
+		echo "You are not on a Debian or Arch based system, make a pull request for your package manager"
 	fi
 endef
 
