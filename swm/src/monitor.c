@@ -1,6 +1,11 @@
+/// Standard Library
+#include <string.h>
+
+/// Slacker Headers
 #include "config.h"
 #include "monitor.h"
 #include "utils.h"
+#include "swm.h"
 
 Monitor *Monitor__new(void)
 {

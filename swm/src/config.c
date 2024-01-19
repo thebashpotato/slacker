@@ -22,6 +22,7 @@ const int32_t G_LOCK_FULLSCREEN                 = 1;
 char G_DMENU_MONITOR[]                          = "0";
 const char *G_DMENU_COMMAND[]                   = {"dmenu_run", "-m", G_DMENU_MONITOR, "-fn", G_DMENU_FONT, "-nb", G_COLORSCHEME_BACKGROUND, "-nf", G_COLORSCHEME_FOREGROUND, "-sb", G_COLORSCHEME_PRIMARY, "-sf", G_COLORSCHEME_SECONDARY, NULL};
 const char *G_TERMINAL_COMMAND[]                = {"konsole", NULL};
+const char *G_TAGS[]                            = { "", "", "", "", "", "", "", "", "" };
 
 const char *G_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS] = {
     // ================================================================================================
@@ -31,7 +32,6 @@ const char *G_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS] = {
     [SlackerColorscheme_Sel]     = { G_COLORSCHEME_SECONDARY, G_COLORSCHEME_PRIMARY,    G_COLORSCHEME_PRIMARY  },
 };
 
-const char *G_TAGS[] = { "", "", "", "", "", "", "", "", "" };
 
 const SlackerWindowRule G_WINDOW_RULES[] = {
     // ================================================================================================

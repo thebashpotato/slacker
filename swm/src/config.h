@@ -11,8 +11,7 @@
 #include "constants.h"
 #include "common.h"
 #include "monitor.h"
-#include "modifiers.h"
-#include "swm.h"
+#include "modifiers.h" // clang-analyzer complains since the functions from this header are used in the TAGKEYS macro.
 
 /// @brief Appearance control variables
 extern const uint32_t G_BORDER_PIXEL;
@@ -34,13 +33,14 @@ extern const int32_t G_RESIZE_HINTS;
 extern const int32_t G_LOCK_FULLSCREEN;
 extern const Layout G_LAYOUTS[MAX_LAYOUTS];
 
+/// @brief Tags which are displayed in the bar
+///
+/// @details If you want more than 9 tags, you will need to change the
+/// MAX_TAGS constant in constants.h to match the number of tags you want.
+extern const char *G_TAGS[MAX_TAGS];
+
 /// @brief Foreground, Background and Border colors
 extern const char *G_COLORSCHEMES[MAX_COLOR_SCHEMES][MAX_COLOR_VARIANTS];
-
-/// @brief Tags which are displayed in the bar
-/// @details If you want more than 9 tags, you will need to change the
-/// MAX_TAGS constant in slacker_constants.h to match the number of tags you want.
-extern const char *G_TAGS[MAX_TAGS];
 
 /// @brief Add rules for applications which need to be managed in a specific way.
 /// @details The rules are matched against the window class name, role, and title.
