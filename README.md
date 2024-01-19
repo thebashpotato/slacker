@@ -1,6 +1,6 @@
 <div align="center">
    <h1>Slacker X11 Environment</h1>
-   <img src="assets/slacker0.png">
+   <img src="assets/slacker1.png">
    <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/thebashpotato/slacker/c-cpp.yml?branch=main&style=for-the-badge&logo=ubuntu&label=Linux%20Build">
    <img alt="GitHub issues" src="https://img.shields.io/github/issues/thebashpotato/slacker?style=for-the-badge&logo=github">
    <img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/thebashpotato/slacker?style=for-the-badge&logo=github">
