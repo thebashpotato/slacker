@@ -9,10 +9,10 @@ include make/canned_recipes.mk
 include make/settings.mk
 
 swm:
-	@$(MAKE) -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
+	@$(MAKE) -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER) DEBUG=0
 
 swm-dev: clean
-	@bear -- $(MAKE) -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER)
+	@bear -- $(MAKE) -C swm/ all BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER) DEBUG=1
 
 swm-debug: clean
 	@bear -- $(MAKE) -C swm/ BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER) DEBUG=1
