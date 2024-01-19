@@ -104,7 +104,7 @@ const char *G_TAGS[]                            = { "", "", "", "", 
 sudo make init-dev
 
 # Run the window manager in an embedded X window for testing and development
-make swm-dev
+make swm-debug
 
 ```
 
