@@ -5,6 +5,7 @@
    <img alt="GitHub issues" src="https://img.shields.io/github/issues/thebashpotato/slacker?style=for-the-badge&logo=github">
    <img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/thebashpotato/slacker?style=for-the-badge&logo=github">
    <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/y/thebashpotato/slacker?style=for-the-badge&logo=github">
+   <img src="https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=c&logoColor=white">
 
    <br>
    <p>An X11 Tiling Window Manager for GNU/Linux and BSD's.</p>
