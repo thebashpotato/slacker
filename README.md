@@ -1,9 +1,13 @@
-# Slacker X11 environment
+<div align="center">
+   <h1>Slacker X11 Environment</h1>
+   <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/thebashpotato/slacker/c-cpp.yml?branch=main&style=for-the-badge&logo=ubuntu&label=Linux%20Build">
+   <img alt="GitHub issues" src="https://img.shields.io/github/issues/thebashpotato/slacker?style=for-the-badge&logo=github">
+   <img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/thebashpotato/slacker?style=for-the-badge&logo=github">
+   <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/y/thebashpotato/slacker?style=for-the-badge&logo=github">
 
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-[![C Build](https://github.com/thebashpotato/slacker/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/thebashpotato/slacker/actions/workflows/c-cpp.yml)
-
-An X11 Tiling Window Manager for GNU/Linux and BSD's.
+   <br>
+   <p>An X11 Tiling Window Manager for GNU/Linux and BSD's.</p>
+</div>
 
 ## Background
 
