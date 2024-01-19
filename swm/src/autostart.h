@@ -12,7 +12,6 @@
 
 // Slacker Headers
 #include "constants.h"
-#include "utils.h"
 
 typedef struct Autostart Autostart;
 

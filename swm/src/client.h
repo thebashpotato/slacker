@@ -11,7 +11,8 @@
 // Slacker headers
 #include "constants.h"
 
-// forward declarations
+// NOTE: This is a forward declaration of the Monitor struct, as including
+// the monitor header here would cause a circular dependency.
 typedef struct Monitor Monitor;
 
 ////////////////////////////////////////////////////
@@ -63,7 +64,9 @@ struct Client {
 /// @param `monitor` The monitor the client is being created on
 Client *Client__new(Window w_id, XWindowAttributes *wa, Monitor *monitor);
 
-/// @brief TODO: Implement this
+/// @brief Detatches a client from the monitor stack list and the monitor linked list.
+///
+/// @param `client` The client to add to the monitor's client list.
 void Client__delete(Client *client);
 
 /// @brief Adds a client to the front of a monitor's client list.

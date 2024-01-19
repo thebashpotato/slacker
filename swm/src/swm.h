@@ -11,11 +11,11 @@
 #include <stdint.h>
 
 // Slacker Headers
-#include "drawable.h"
-#include "error.h"
+
+#include "client.h"
 #include "common.h"
 #include "constants.h"
-#include "monitor.h"
+#include "drawable.h"
 
 ///////////////////////////////////////////////////////
 /// 				Helper Macros

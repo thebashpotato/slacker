@@ -9,6 +9,7 @@
 #include "monitor.h"
 #include "swm.h"
 #include "utils.h"
+#include "error.h"
 
 void Swm__kill_client(const Arg *arg)
 {

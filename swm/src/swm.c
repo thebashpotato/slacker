@@ -24,11 +24,12 @@
 #include "client.h"
 #include "config.h"
 #include "common.h"
-#include "constants.h"
+#include "error.h"
 #include "events.h"
 #include "swm.h"
 #include "utils.h"
 #include "modifiers.h"
+#include "monitor.h"
 
 Swm g_swm;
 

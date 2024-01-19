@@ -7,8 +7,6 @@
 #include <unistd.h>
 
 // Slacker Headers
-#include "config.h"
-#include "error.h"
 #include "utils.h"
 
 const char CLIENT_WINDOW_BROKEN[] = "broken";

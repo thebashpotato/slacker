@@ -1,14 +1,10 @@
 #ifndef SWM_UTILS_H
 #define SWM_UTILS_H
 
-// X11 Libraries
-#include "X11/Xlib.h"
-
 // Standard Libraries
 #include <stdlib.h>
 
 // Slacker Libraries
-#include "swm.h"
 #include "config.h"
 #include "constants.h"
 

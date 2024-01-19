@@ -1,3 +1,6 @@
+// X11
+#include <X11/XKBlib.h>
+
 // Standard Libraries
 #include <stdio.h>
 #include <stdint.h>
@@ -342,7 +345,7 @@ void Swm__event_keypress(XEvent *event)
 {
 	XKeyEvent *ev = &event->xkey;
 	KeySym keysym =
-		XKeycodeToKeysym(g_swm.ctx.xconn, (KeyCode)ev->keycode, 0);
+		XkbKeycodeToKeysym(g_swm.ctx.xconn, (KeyCode)ev->keycode, 0, 0);
 
 	for (uint32_t i = 0; i < LENGTH(G_KEYBINDINGS); ++i) {
 		if (keysym == G_KEYBINDINGS[i].keysym &&

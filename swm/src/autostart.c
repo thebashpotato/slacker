@@ -1,6 +1,7 @@
 
 // Slacker Headers
 #include "autostart.h"
+#include "utils.h"
 
 Autostart Autostart__new(void)
 {

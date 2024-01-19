@@ -1,12 +1,17 @@
 
+// X11 Libraries
+#include <X11/Xlib.h>
+
+// Standard Libraries
+#include <stdio.h>
+#include <string.h>
+
+// Slacker Headers
 #include "client.h"
 #include "config.h"
 #include "monitor.h"
 #include "utils.h"
 #include "swm.h"
-#include <X11/Xlib.h>
-#include <stdio.h>
-#include <string.h>
 
 /// @brief Allows a client to log itself to stdout
 ///

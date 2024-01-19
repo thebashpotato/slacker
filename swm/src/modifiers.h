@@ -2,7 +2,6 @@
 #define SWM_MODIFIERS_H
 
 #include "common.h"
-#include "monitor.h"
 
 /// @brief Kills the currently selected client.
 ///
