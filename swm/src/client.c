@@ -15,10 +15,10 @@
 
 /// @brief Allows a client to log itself to stdout
 ///
-/// @param `client` The client to log: client->log(client)
+/// @param `this` The client to log: client->log(client)
 static void Client__log(Client *this)
 {
-#if (DEBUG == 1)
+#if (DEBUG)
 	fprintf(stdout, "\nClient: %li\n", this->win);
 	fprintf(stdout, "Name: %s\n", this->name);
 	fprintf(stdout, "X: %d, Y: %i\n", this->x, this->y);

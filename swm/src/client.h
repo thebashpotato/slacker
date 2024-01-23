@@ -10,6 +10,7 @@
 
 // Slacker headers
 #include "constants.h"
+#include "geometry.h"
 
 // NOTE: This is a forward declaration of the Monitor struct, as including
 // the monitor header here would cause a circular dependency.

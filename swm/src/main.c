@@ -1,6 +1,7 @@
 // Standard Libraries
 #include <locale.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 // Slacker Headers
@@ -8,13 +9,23 @@
 #include "utils.h"
 #include "swm.h"
 
+#if (UNIT_TESTS)
+#include "test_runner.h"
+#endif
+
 int main(int argc, char **argv)
 {
-#if (DEBUG == true)
+#if (UNIT_TESTS)
+	test_runner();
+	return EXIT_SUCCESS;
+#endif // UNIT_TESTS
+
+#if (DEBUG)
 	printf("Running in debug mode, attach debugger to pid: '%d'\n",
 	       getpid());
 	//sleep(15);
-#endif
+
+#endif // DEBUG
 
 	if (argc == 2 && !strcmp("-v", argv[1])) {
 		fprintf(stdout, "swm-" VERSION "\n");
@@ -27,7 +38,7 @@ int main(int argc, char **argv)
 		clean_environment();
 		Autostart as = Autostart__new();
 
-#if (DEBUG == false)
+#if (!DEBUG)
 		printf("Running in release mode\n");
 		Autostart__add(&as, "xset r rate 200 60");
 		Autostart__add(&as, "setxkbmap -option ctrl:nocaps");

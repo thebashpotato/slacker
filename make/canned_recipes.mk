@@ -22,6 +22,16 @@ define _embed =
 	wait $$XEPHYR_PID
 endef
 
+# Runs unit tests
+define _run_tests =
+	if [ ! -f $(BUILD_DIR)/bin/${1} ]; then
+		echo "Please build ${1} first"
+		exit 0
+	fi
+
+	$(BUILD_DIR)/bin/${1}
+endef
+
 
 define _clean =
 	if [ -d $(BUILD_DIR) ]; then

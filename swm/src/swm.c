@@ -38,7 +38,7 @@ Swm g_swm;
 /// @param `ctx` The client to log: client->log(client)
 static void Ctx__log(Ctx *this)
 {
-#if (DEBUG == true)
+#if (DEBUG)
 	fprintf(stdout, "\nScreen id: %d\n", this->xscreen_id);
 	fprintf(stdout, "W: %d\n", this->xscreen_width);
 	fprintf(stdout, "H: %d\n", this->xscreen_height);
