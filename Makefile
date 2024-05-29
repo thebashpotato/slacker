@@ -2,6 +2,7 @@
 # Dispatches commands to all lower level Makefiles.
 # Pure makefile based build system written from scratch.. come at me bro.
 
+
 PROJECT_ROOT=$(shell pwd)
 BUILD_DIR:=$(PROJECT_ROOT)/build
 
