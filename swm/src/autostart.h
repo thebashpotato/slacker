@@ -2,10 +2,7 @@
 #define SWM_AUTOSTART_H
 
 // Standard Libraries
-#include <errno.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <bits/stdint-uintn.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>

@@ -87,4 +87,4 @@ extern const Button G_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS];
 		}                                  \
 	}
 
-#endif // SLACKER_CONFIG_H
+#endif // SWM_CONFIG_H

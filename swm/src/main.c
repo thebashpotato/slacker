@@ -2,6 +2,7 @@
 #include <locale.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 // Slacker Headers
 #include "autostart.h"
@@ -13,7 +14,7 @@ int main(int argc, char **argv)
 #if (DEBUG == true)
 	printf("Running in debug mode, attach debugger to pid: '%d'\n",
 	       getpid());
-	//sleep(15);
+	sleep(15);
 #endif
 
 	if (argc == 2 && !strcmp("-v", argv[1])) {
@@ -23,7 +24,6 @@ int main(int argc, char **argv)
 		if (!setlocale(LC_CTYPE, "") || !XSupportsLocale()) {
 			fputs("warning: no locale support\n", stderr);
 		}
-
 		clean_environment();
 		Autostart as = Autostart__new();
 
@@ -39,9 +39,10 @@ int main(int argc, char **argv)
 		// NOTE: Example for ultra wide monitor on Display port (GPU) with 144hz refresh rate
 		Autostart__add(
 			&as,
-			"xrandr --output DisplayPort-0 --mode 3840x1080 --rate 143.85");
+			"xrandr --output DisplayPort-2 --mode 3840x1080 --rate 143.85");
 
 		// NOTE: Example for built-in laptop screen for Dell xps 13
+		//
 		//Autostart__add(
 		//	&as,
 		//	"xrandr --output eDP-1 --mode 1920x1200 --rate 59.95")
