@@ -35,17 +35,17 @@ int main(int argc, char **argv)
 		Autostart__add(&as, "slacker_update_bar.sh");
 		Autostart__add(
 			&as,
-			"feh --bg-fill /usr/local/share/slacker/background.jpg");
+			"feh --bg-fill /usr/local/share/slacker/background.png");
 
 		// NOTE: Example for ultra wide monitor on Display port (GPU) with 144hz refresh rate
-		// Autostart__add(
-		// 	&as,
-		// 	"xrandr --output DisplayPort-2 --mode 3840x1080 --rate 143.85");
+		Autostart__add(
+			&as,
+			"xrandr --output DP-3 --mode 3840x1080 --rate 143.72");
 
 		// NOTE: Example for built-in laptop screen for Dell xps 13
-		Autostart__add(
-		&as,
-		"xrandr --output eDP-1 --mode 1920x1200 --rate 59.95");
+		// Autostart__add(
+		// &as,
+		// "xrandr --output eDP-1 --mode 1920x1200 --rate 59.95");
 
 		Autostart__exec(&as);
 #endif
