@@ -32,6 +32,7 @@ int main(int argc, char **argv)
 		Autostart__add(&as, "xset r rate 200 60");
 		Autostart__add(&as, "setxkbmap -option ctrl:nocaps");
 		Autostart__add(&as, "picom");
+		Autostart__add(&as, "slacker_update_bar.sh");
 		Autostart__add(
 			&as,
 			"feh --bg-fill /usr/local/share/slacker/background.jpg");

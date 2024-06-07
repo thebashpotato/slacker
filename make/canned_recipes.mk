@@ -79,6 +79,7 @@ define _install =
 	fi
 
 	install -v -Dm755 $(BUILD_DIR)/bin/swm $(DESTDIR)$(PREFIX)/bin
+	install -v -Dm755 $(PROJECT_ROOT)/install-files/slacker_update_bar.sh $(DESDIR)$(PREFIX)/bin
 	install -v -D $(PROJECT_ROOT)/install-files/background.jpg $(DESTDIR)$(SLACKER_DIR)/
 	install -v -D $(PROJECT_ROOT)/install-files/swm.desktop $(DESTDIR)/usr/share/xsessions/
 	install -v $(PROJECT_ROOT)/install-files/picom/picom.conf $(DESTDIR)/etc/xdg
