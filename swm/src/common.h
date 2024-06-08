@@ -74,9 +74,8 @@ struct SlackerWindowRule {
 	int32_t monitor;
 };
 
-typedef union Arg Arg;
-
 /// @brief Represents an argument to a function
+typedef union Arg Arg;
 union Arg {
 	int32_t i;
 	uint32_t ui;

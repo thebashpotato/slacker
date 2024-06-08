@@ -10,6 +10,7 @@
 #include "swm.h"
 #include "utils.h"
 #include "error.h"
+#include <string.h>
 
 void Swm__kill_client(const Arg *arg)
 {

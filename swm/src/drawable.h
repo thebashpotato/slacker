@@ -4,6 +4,7 @@
 // X11 Libraries
 #include <X11/Xatom.h>
 #include <X11/Xft/Xft.h>
+#include <freetype2/ft2build.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>

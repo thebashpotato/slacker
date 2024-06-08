@@ -12,7 +12,7 @@
 int main(int argc, char **argv)
 {
 #if (DEBUG == true)
-	printf("Running in debug mode, attach debugger to pid: '%d'\n",
+	fprintf(stdout, "Running in debug mode, attach debugger to pid: '%d'\n",
 	       getpid());
 	sleep(15);
 #endif
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 		Autostart as = Autostart__new();
 
 #if (DEBUG == false)
-		printf("Running in release mode\n");
+		fprintf(stdout, "Running in release mode\n");
 		Autostart__add(&as, "xset r rate 200 60");
 		Autostart__add(&as, "setxkbmap -option ctrl:nocaps");
 		Autostart__add(&as, "picom");
@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 		// NOTE: Example for ultra wide monitor on Display port (GPU) with 144hz refresh rate
 		Autostart__add(
 			&as,
-			"xrandr --output DP-3 --mode 3840x1080 --rate 143.72");
+			"xrandr --output DisplayPort-2 --mode 3840x1080 --rate 143.85");
 
 		// NOTE: Example for built-in laptop screen for Dell xps 13
 		// Autostart__add(
