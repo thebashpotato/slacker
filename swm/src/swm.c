@@ -8,12 +8,8 @@
 #include <X11/keysym.h>
 
 // Standard libraries
-#include <errno.h>
 #include <locale.h>
-#include <signal.h>
-#include <stdarg.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -187,7 +183,7 @@ static void Swm__init_fonts(void)
 	}
 
 	// TODO: This will be moved to the future Bar struct
-	g_swm.left_right_padding_sum = g_swm.draw->fonts->h;
+	g_swm.left_right_padding_sum = g_swm.draw->fonts->h + 5;
 	g_swm.bar_height = g_swm.draw->fonts->h + 5;
 }
 
@@ -341,7 +337,6 @@ void Swm__startup(void)
 		Swm__init_appearance();
 
 		// Register the events we plan to support with X
-
 		wa.event_mask = SubstructureRedirectMask |
 				SubstructureNotifyMask | ButtonPressMask |
 				PointerMotionMask | EnterWindowMask |
@@ -663,7 +658,7 @@ void Swm__drawbar(Monitor *monitor)
 	if (monitor == g_swm.selected_monitor) {
 		// Calculate the width of the status text and add 2x padding
 		text_width = TEXTW(g_swm.status_text) -
-			     (g_swm.left_right_padding_sum + 2);
+			     (g_swm.left_right_padding_sum);
 
 		drw_setscheme(g_swm.draw,
 			      g_swm.scheme[SlackerColorscheme_Norm]);
@@ -1366,10 +1361,13 @@ bool Swm__updategeom(void)
 	if (g_swm.monitor_list->mw != g_swm.ctx.xscreen_width ||
 	    g_swm.monitor_list->mh != g_swm.ctx.xscreen_height) {
 		dirty = true;
+
 		g_swm.monitor_list->mw = g_swm.monitor_list->ww =
 			g_swm.ctx.xscreen_width;
+
 		g_swm.monitor_list->mh = g_swm.monitor_list->wh =
 			g_swm.ctx.xscreen_height;
+
 		Monitor__updatebarpos(g_swm.monitor_list);
 	}
 

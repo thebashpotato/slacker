@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 #if (DEBUG == true)
 	fprintf(stdout, "Running in debug mode, attach debugger to pid: '%d'\n",
 		getpid());
-	sleep(15);
+	sleep(5);
 #endif
 
 	if (argc == 2 && !strcmp("-v", argv[1])) {

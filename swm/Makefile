@@ -1,15 +1,15 @@
 # Slacker Window Manager. Suckless style non-reparenting window manager.
 
-TARGET=swm
+
+include make/swm_settings.mk
+include make/canned_recipes.mk
+
 SRC_DIR=src
 BUILD_DIR?=build
 OBJ_DIR=$(BUILD_DIR)/$(TARGET)/obj
 BIN_DIR=$(BUILD_DIR)/bin
 DIST_DIR=$(BUILD_DIR)/dist
 CC?=gcc
-
-include make/swm_settings.mk
-include make/canned_recipes.mk
 
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))

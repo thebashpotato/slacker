@@ -5,7 +5,7 @@
             "type": "lldb",
             "request": "attach",
             "name": "Attach to swm process",
-            "program": "${workspaceFolder}/build/bin/swm",
+            "program": "${workspaceFolder}/build/bin/swmd",
             "processId": "${command:pickProcess}",
             "MIMode": "lldb",
             "setupCommands": [

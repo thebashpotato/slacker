@@ -16,13 +16,15 @@ FREETYPEINC = /usr/include/freetype2
 INCS = -I${X11INC} -I${FREETYPEINC}
 LIBS = -L${X11LIB} -lX11 ${FREETYPELIBS}
 
-# flags
-DEBUG ?= 0
-ARGUMENT_FLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"$(VERSION)\" -DDEBUG=$(DEBUG)
+TARGET?=swm
 
+# flags
+DEBUG?=0
+ARGUMENT_FLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"$(VERSION)\" -DDEBUG=$(DEBUG)
 ifeq ($(DEBUG), 0)
 	CFLAGS = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${ARGUMENT_FLAGS}
 else
+	TARGET=swmd
 	CFLAGS := -g -std=c99 -pedantic -Wall -O0 ${INCS} ${ARGUMENT_FLAGS}
 endif
 

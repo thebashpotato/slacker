@@ -17,7 +17,7 @@ swm-dev: clean
 
 swm-debug: clean
 	@bear -- $(MAKE) -C swm/ BUILD_DIR=$(BUILD_DIR) CC=$(COMPILER) DEBUG=1
-	@$(call _embed,swm)
+	@$(call _embed,swmd)
 
 format:
 	@$(MAKE) -C swm/ format
@@ -28,7 +28,7 @@ init:
 init-dev:
 	@$(call _init_dev)
 
-install: swm
+install:
 	@$(call _install)
 
 uninstall:
