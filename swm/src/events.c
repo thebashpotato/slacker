@@ -3,10 +3,10 @@
 
 // Standard Libraries
 #include <stdio.h>
-#include <stdint.h>
+#include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
 
 // Swm headers
-
 #include "common.h"
 #include "config.h"
 #include "events.h"
@@ -85,7 +85,7 @@ void Swm__event_button_press(XEvent *event)
 	}
 
 	// Check if the button press was a click on the bar
-	if (ev->window == g_swm.selected_monitor->barwin) {
+	if (ev->window == g_swm.selected_monitor->bar_win_id) {
 		do {
 			x += TEXTW(G_TAGS[i]);
 		} while (ev->x >= x && ++i < LENGTH(G_TAGS));
@@ -275,10 +275,12 @@ void Swm__event_configure_notify(XEvent *event)
 							temp_monitor->mw,
 							temp_monitor->mh);
 				}
-				XMoveResizeWindow(
-					g_swm.ctx.xconn, temp_monitor->barwin,
-					temp_monitor->wx, temp_monitor->by,
-					temp_monitor->ww, g_swm.bar_height);
+				XMoveResizeWindow(g_swm.ctx.xconn,
+						  temp_monitor->bar_win_id,
+						  temp_monitor->wx,
+						  temp_monitor->bar_y,
+						  temp_monitor->ww,
+						  g_swm.bar_height);
 			}
 			Swm__focus(NULL);
 			Swm__arrange_monitors(NULL);

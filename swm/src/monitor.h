@@ -6,9 +6,9 @@
 #include <X11/keysym.h>
 
 // Standard Libraries
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
+#include <stdbool.h>
 
 // Slacker Headers
 #include "constants.h"
@@ -35,13 +35,13 @@ struct Monitor {
 	/// Layout symbol thats displayed in the bar
 	char layout_symbol[MAX_LAYOUT_SYMBOL_LEN];
 	/// Master width factor (how much space the master window takes up)
-	float mfact;
+	float master_width_factor;
 	/// Number of windows in the master area, default is 1
-	int32_t nmaster;
+	int32_t num_master;
 	/// Number of all monitors?
 	int32_t num;
 	/// Bar geometry
-	int32_t by;
+	int32_t bar_y;
 	/// Screen geometry
 	int32_t mx, my, mw, mh;
 	/// Window area
@@ -51,11 +51,11 @@ struct Monitor {
 	/// Selected layout
 	uint32_t selected_layout;
 	/// Tag set
-	uint32_t tagset[MAX_TAG_SETS];
+	uint32_t tag_set[MAX_TAG_SETS];
 	/// Bar is shown
-	int32_t showbar;
+	int32_t show_bar;
 	/// Bar is on top 1 for true, 0 for false
-	int32_t topbar;
+	int32_t top_bar;
 	/// Currently selected client
 	Client *selected_client;
 	/// A linked list of all the clients on this monitor
@@ -65,7 +65,7 @@ struct Monitor {
 	/// Next monitor in the linked list of monitors
 	Monitor *next;
 	/// Xid for the bar window
-	Window barwin;
+	Window bar_win_id;
 	/// Layouts
 	const Layout *layouts[MAX_LAYOUTS];
 };
@@ -78,11 +78,14 @@ Monitor *Monitor__new(void);
 /// @details Also unmaps the bar window and destroys it.
 void Monitor__delete(Monitor *monitor);
 
+/// @brief Checks if the layout is monocle mode
+bool Monitor__is_layout_monocle(Monitor *monitor);
+
 /// @brief Updates the layout symbol, then calls the layout's arrange function
 /// for the given monitor.
 void Monitor__arrange(Monitor *monitor);
 
-/// @brief Get total number of clines on this monitor
+/// @brief Get total number of clients on this monitor
 int32_t Monitor__get_num_clients(Monitor *monitor);
 
 /// @brief Update the status bar position for one monitor

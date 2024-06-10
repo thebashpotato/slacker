@@ -34,7 +34,7 @@ void Swm__kill_client(const Arg *arg)
 void Swm__increment_n_master(const Arg *arg)
 {
 	Monitor *active = g_swm.selected_monitor;
-	active->nmaster = MAX(active->nmaster + arg->i, 0);
+	active->num_master = MAX(active->num_master + arg->i, 0);
 	Swm__arrange_monitors(active);
 }
 
@@ -99,10 +99,9 @@ void Swm__move_with_mouse(const Arg *arg)
 			if (abs(g_swm.selected_monitor->wx - nx) <
 			    G_SNAP_PIXEL) {
 				nx = g_swm.selected_monitor->wx;
-			} else if (abs((g_swm.selected_monitor->wx +
-					g_swm.selected_monitor->ww) -
-				       (nx + WIDTH(temp_client))) <
-				   G_SNAP_PIXEL) {
+			} else if (((g_swm.selected_monitor->wx +
+				     g_swm.selected_monitor->ww) -
+				    (nx + WIDTH(temp_client))) < G_SNAP_PIXEL) {
 				nx = g_swm.selected_monitor->wx +
 				     g_swm.selected_monitor->ww -
 				     WIDTH(temp_client);
@@ -111,9 +110,9 @@ void Swm__move_with_mouse(const Arg *arg)
 			if (abs(g_swm.selected_monitor->wy - ny) <
 			    G_SNAP_PIXEL) {
 				ny = g_swm.selected_monitor->wy;
-			} else if (abs((g_swm.selected_monitor->wy +
-					g_swm.selected_monitor->wh) -
-				       (ny + HEIGHT(temp_client))) <
+			} else if (((g_swm.selected_monitor->wy +
+				     g_swm.selected_monitor->wh) -
+				    (ny + HEIGHT(temp_client))) <
 				   G_SNAP_PIXEL) {
 				ny = g_swm.selected_monitor->wy +
 				     g_swm.selected_monitor->wh -
@@ -301,12 +300,13 @@ void Swm__setmfact(const Arg *arg)
 		return;
 	}
 
-	float factor = arg->f < 1.0 ? arg->f + sm->mfact : arg->f - 1.0;
+	float factor = arg->f < 1.0 ? arg->f + sm->master_width_factor :
+				      arg->f - 1.0;
 
 	if (factor < 0.05 || factor > 0.95) {
 		return;
 	}
-	sm->mfact = factor;
+	sm->master_width_factor = factor;
 	Swm__arrange_monitors(sm);
 }
 
@@ -361,10 +361,10 @@ void Swm__togglebar(const Arg *arg)
 {
 	Monitor *sm = g_swm.selected_monitor;
 
-	sm->showbar = !sm->showbar;
+	sm->show_bar = !sm->show_bar;
 	Monitor__updatebarpos(sm);
-	XMoveResizeWindow(g_swm.ctx.xconn, sm->barwin, sm->wx, sm->by, sm->ww,
-			  g_swm.bar_height);
+	XMoveResizeWindow(g_swm.ctx.xconn, sm->bar_win_id, sm->wx, sm->bar_y,
+			  sm->ww, g_swm.bar_height);
 	Swm__arrange_monitors(sm);
 }
 
@@ -415,11 +415,11 @@ void Swm__toggleview(const Arg *arg)
 		return;
 	}
 
-	uint32_t newtagset = sm->tagset[sm->selected_tags] ^
+	uint32_t newtagset = sm->tag_set[sm->selected_tags] ^
 			     (arg->ui & TAGMASK);
 
 	if (newtagset) {
-		sm->tagset[sm->selected_tags] = newtagset;
+		sm->tag_set[sm->selected_tags] = newtagset;
 		Swm__focus(NULL);
 		Swm__arrange_monitors(sm);
 	}
@@ -432,14 +432,14 @@ void Swm__view(const Arg *arg)
 		return;
 	}
 
-	if ((arg->ui & TAGMASK) == sm->tagset[sm->selected_tags]) {
+	if ((arg->ui & TAGMASK) == sm->tag_set[sm->selected_tags]) {
 		return;
 	}
 
 	// Toggle selected tag set for the active monitor.
 	sm->selected_tags ^= 1;
 	if (arg->ui & TAGMASK) {
-		sm->tagset[sm->selected_tags] = arg->ui & TAGMASK;
+		sm->tag_set[sm->selected_tags] = arg->ui & TAGMASK;
 	}
 
 	Swm__focus(NULL);

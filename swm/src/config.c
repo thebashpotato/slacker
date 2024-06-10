@@ -4,8 +4,9 @@
 #include "modifiers.h"
 
 // clang-format off
-const uint32_t G_BORDER_PIXEL                   = 2;
+const uint32_t G_BORDER_PIXEL                   = 3;
 const uint32_t G_SNAP_PIXEL                     = 32;
+const uint32_t G_GAP_PIXEL                      = 6;
 const int32_t G_SHOW_BAR                        = 1;
 const int32_t G_TOP_BAR                         = 1;
 const char G_USER_FONT[]                        = "NotoSansM NFM:size=17:style=Bold";
@@ -17,7 +18,7 @@ const char G_COLORSCHEME_SECONDARY[]            = "#24283b";
 const char G_COLORSCHEME_PRIMARY[]              = "#7aa2f7";
 const float G_MASTER_FACTOR                     = 0.55;
 const int32_t G_MASTER_COUNT                    = 1;
-const int32_t G_RESIZE_HINTS                    = 1;
+const int32_t G_RESIZE_HINTS                    = 0;
 const int32_t G_LOCK_FULLSCREEN                 = 1;
 char G_DMENU_MONITOR[]                          = "0";
 const char *G_DMENU_COMMAND[]                   = {"dmenu_run", "-m", G_DMENU_MONITOR, "-fn", G_DMENU_FONT, "-nb", G_COLORSCHEME_BACKGROUND, "-nf", G_COLORSCHEME_FOREGROUND, "-sb", G_COLORSCHEME_PRIMARY, "-sf", G_COLORSCHEME_SECONDARY, NULL};
@@ -103,7 +104,7 @@ const Button G_CLICKABLE_BUTTONS[MAX_BUTTON_BINDINGS] = {
     { SlackerClick_TagBar,             0,              Button1,        Swm__view,                       {0}                         },
     { SlackerClick_TagBar,             0,              Button3,        Swm__toggleview,                 {0}                         },
     { SlackerClick_TagBar,             MODKEY,         Button1,        Swm__tag,                        {0}                         },
-    { SlackerClick_TagBar,             MODKEY,         Button3,        Swm__toggletag,                  {0}                         },
+    { SlackerClick_TagBar,            MODKEY,         Button3,         Swm__toggletag,                  {0}                         },
 };
 
 // clang-format on

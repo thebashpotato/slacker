@@ -15,11 +15,24 @@
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
 #define BETWEEN(X, A, B) ((A) <= (X) && (X) <= (B))
-
 #define LENGTH(X) (sizeof X / sizeof X[0])
 
+////////////////////////////////////////////////////
+/// 			Helper client macros
+////////////////////////////////////////////////////
+
+/// @brief Check if a client is visible on a monitor
+#define ISVISIBLE(client) \
+	((client->tags & client->mon->tag_set[client->mon->selected_tags]))
+
+/// @brief Get the Width of a client + 2 * the border width
+#define WIDTH(client) ((client)->w + 2 * (client)->bw + G_GAP_PIXEL)
+
+/// @brief Get the Height of a client + 2 * the border width
+#define HEIGHT(client) ((client)->h + 2 * (client)->bw + G_GAP_PIXEL)
+
 /// @brief Compile time check to ensure that the number of tags is less than 32
-struct NumTags {
+struct NumTagsCompileTimeCheck {
 	uint32_t limitexceeded[LENGTH(G_TAGS) > MAX_SUPPORTED_TAGS ? -1 : 1];
 };
 

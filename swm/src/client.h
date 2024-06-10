@@ -3,10 +3,12 @@
 
 // X11
 #include <X11/Xlib.h>
+#include <X11/X.h>
 
 // Standard Libraries
-#include <stdint.h>
-#include <stdio.h>
+#include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
+#include <stdbool.h>
 
 // Slacker headers
 #include "constants.h"
@@ -14,20 +16,6 @@
 // NOTE: This is a forward declaration of the Monitor struct, as including
 // the monitor header here would cause a circular dependency.
 typedef struct Monitor Monitor;
-
-////////////////////////////////////////////////////
-/// 			Helper client macros
-////////////////////////////////////////////////////
-
-/// @brief Check if a client is visible on a monitor
-#define ISVISIBLE(Client) \
-	((Client->tags & Client->mon->tagset[Client->mon->selected_tags]))
-
-/// @brief Get the Width of a client + 2 * the border width
-#define WIDTH(Client) ((Client)->w + 2 * (Client)->bw)
-
-/// @brief Get the Height of a client + 2 * the border width
-#define HEIGHT(Client) ((Client)->h + 2 * (Client)->bw)
 
 /// @brief Represents an X client window
 typedef struct Client Client;
@@ -68,6 +56,18 @@ Client *Client__new(Window w_id, XWindowAttributes *wa, Monitor *monitor);
 ///
 /// @param `client` The client to add to the monitor's client list.
 void Client__delete(Client *client);
+
+/// @brief Updates a single clients x, y, w, and h dimensions.
+///
+/// @details Used to apply window gaps
+XWindowChanges Client__update_dimensions(Client *client, int32_t x, int32_t y,
+					 int32_t w, int32_t h);
+
+/// @brief Checks to see if this client is safe to modify or manipulate
+///
+/// @details This means to check if the client is not floating, and if the layout handler function
+/// for this clients monitor is not null. Currently used when resizing a client to apply gaps and window changes.
+bool Client__safe_to_modify(Client *client);
 
 /// @brief Adds a client to the front of a monitor's client list.
 ///

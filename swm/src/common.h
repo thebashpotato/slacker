@@ -5,7 +5,8 @@
 #include <X11/Xlib.h>
 
 // Standard Libraries
-#include <stdint.h>
+#include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
 
 ////////////////////
 /// Enumerations

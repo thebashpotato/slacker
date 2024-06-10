@@ -5,7 +5,8 @@
 #include <X11/X.h>
 
 // Standard Libraries
-#include <stdint.h>
+#include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
 
 // Slacker Headers
 #include "constants.h"
@@ -16,6 +17,7 @@
 /// @brief Appearance control variables
 extern const uint32_t G_BORDER_PIXEL;
 extern const uint32_t G_SNAP_PIXEL;
+extern const uint32_t G_GAP_PIXEL;
 extern const int32_t G_SHOW_BAR;
 extern const int32_t G_TOP_BAR;
 extern const char G_USER_FONT[];

@@ -293,7 +293,7 @@ int drw_text(Drw *drw, int32_t x, int32_t y, uint32_t w, uint32_t h,
 		nextfont = NULL;
 		while (*text) {
 			utf8charlen = utf8decode(text, &utf8codepoint, UTF_SIZ);
-			
+
 			for (curfont = drw->fonts; curfont;
 			     curfont = curfont->next) {
 				charexists = charexists ||

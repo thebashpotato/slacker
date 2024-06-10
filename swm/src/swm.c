@@ -483,7 +483,7 @@ void Swm__applyrules(Client *client)
 
 	client->tags = client->tags & TAGMASK ?
 			       client->tags & TAGMASK :
-			       client->mon->tagset[client->mon->selected_tags];
+			       client->mon->tag_set[client->mon->selected_tags];
 }
 
 int Swm__applysizehints(Client *client, int *x, int *y, int *w, int *h,
@@ -649,7 +649,7 @@ void Swm__drawbar(Monitor *monitor)
 	uint32_t urgent = 0;
 	Client *temp_client;
 
-	if (!monitor->showbar) {
+	if (!monitor->show_bar) {
 		return;
 	}
 
@@ -680,7 +680,7 @@ void Swm__drawbar(Monitor *monitor)
 		w = TEXTW(G_TAGS[i]);
 		drw_setscheme(
 			g_swm.draw,
-			g_swm.scheme[monitor->tagset[monitor->selected_tags] &
+			g_swm.scheme[monitor->tag_set[monitor->selected_tags] &
 						     1 << i ?
 					     SlackerColorscheme_Sel :
 					     SlackerColorscheme_Norm]);
@@ -736,7 +736,7 @@ void Swm__drawbar(Monitor *monitor)
 		}
 	}
 
-	drw_map(g_swm.draw, monitor->barwin, 0, 0, monitor->ww,
+	drw_map(g_swm.draw, monitor->bar_win_id, 0, 0, monitor->ww,
 		g_swm.bar_height);
 }
 
@@ -1028,34 +1028,30 @@ void Swm__manage_client(Window w_id, XWindowAttributes *wa)
 Monitor *Swm__rect_to_monitor(int x, int y, int w, int h)
 {
 	// TODO: Refactor: Could be a Monitor__ function
-	Monitor *m, *r = g_swm.selected_monitor;
-	int32_t a, area = 0;
+	Monitor *temp_mon = NULL;
+	Monitor *ret = g_swm.selected_monitor;
+	int32_t a = 0;
+	int32_t area = 0;
 
-	for (m = g_swm.monitor_list; m; m = m->next) {
-		if ((a = INTERSECT(x, y, w, h, m)) > area) {
+	for (temp_mon = g_swm.monitor_list; temp_mon;
+	     temp_mon = temp_mon->next) {
+		if ((a = INTERSECT(x, y, w, h, temp_mon)) > area) {
 			area = a;
-			r = m;
+			ret = temp_mon;
 		}
 	}
-	return r;
+	return ret;
 }
 
 void Swm__resize_client(Client *client, int x, int y, int w, int h)
 {
-	XWindowChanges wc;
+	XWindowChanges wc = Client__update_dimensions(client, x, y, w, h);
 
-	client->oldx = client->x;
-	client->x = wc.x = x;
-	client->oldy = client->y;
-	client->y = wc.y = y;
-	client->oldw = client->w;
-	client->w = wc.width = w;
-	client->oldh = client->h;
-	client->h = wc.height = h;
-	wc.border_width = client->bw;
 	XConfigureWindow(g_swm.ctx.xconn, client->win,
 			 CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
+
 	Client__configure(g_swm.ctx.xconn, client);
+
 	XSync(g_swm.ctx.xconn, False);
 }
 
@@ -1079,7 +1075,7 @@ void Swm__restack(Monitor *monitor)
 	// if the layout out callback function is not null, stack the windows
 	if (monitor->layouts[monitor->selected_layout]->handler) {
 		wc.stack_mode = Below;
-		wc.sibling = monitor->barwin;
+		wc.sibling = monitor->bar_win_id;
 		for (temp_client = monitor->client_stack; temp_client;
 		     temp_client = temp_client->stack_next) {
 			if (!temp_client->isfloating &&
@@ -1307,22 +1303,22 @@ void Swm__updatebars(void)
 	for (temp_monitor = g_swm.monitor_list; temp_monitor;
 	     temp_monitor = temp_monitor->next) {
 		// If the bar exists for this monitor, continue
-		if (temp_monitor->barwin) {
+		if (temp_monitor->bar_win_id) {
 			continue;
 		}
 		// The bar does not exist, create it
-		temp_monitor->barwin = XCreateWindow(
+		temp_monitor->bar_win_id = XCreateWindow(
 			g_swm.ctx.xconn, g_swm.ctx.xroot_id, temp_monitor->wx,
-			temp_monitor->by, temp_monitor->ww, g_swm.bar_height, 0,
-			DefaultDepth(g_swm.ctx.xconn, g_swm.ctx.xscreen_id),
+			temp_monitor->bar_y, temp_monitor->ww, g_swm.bar_height,
+			0, DefaultDepth(g_swm.ctx.xconn, g_swm.ctx.xscreen_id),
 			CopyFromParent,
 			DefaultVisual(g_swm.ctx.xconn, g_swm.ctx.xscreen_id),
 			CWOverrideRedirect | CWBackPixmap | CWEventMask, &wa);
 
-		XDefineCursor(g_swm.ctx.xconn, temp_monitor->barwin,
+		XDefineCursor(g_swm.ctx.xconn, temp_monitor->bar_win_id,
 			      g_swm.cursor[SlackerCursorState_Normal]->cursor);
-		XMapRaised(g_swm.ctx.xconn, temp_monitor->barwin);
-		XSetClassHint(g_swm.ctx.xconn, temp_monitor->barwin, &ch);
+		XMapRaised(g_swm.ctx.xconn, temp_monitor->bar_win_id);
+		XSetClassHint(g_swm.ctx.xconn, temp_monitor->bar_win_id, &ch);
 	}
 }
 
@@ -1490,7 +1486,7 @@ Monitor *Swm__wintomon(Window w_id)
 
 	for (temp_monitor = g_swm.monitor_list; temp_monitor;
 	     temp_monitor = temp_monitor->next) {
-		if (w_id == temp_monitor->barwin) {
+		if (w_id == temp_monitor->bar_win_id) {
 			return temp_monitor;
 		}
 	}

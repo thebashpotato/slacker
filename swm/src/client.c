@@ -1,8 +1,10 @@
-
 // X11 Libraries
 #include <X11/Xlib.h>
+#include <X11/X.h>
 
 // Standard Libraries
+#include <bits/stdint-intn.h>
+#include <bits/stdint-uintn.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -73,6 +75,47 @@ void Client__delete(Client *client)
 		Client__detach_from_stack(client);
 		free(client);
 	}
+}
+
+XWindowChanges Client__update_dimensions(Client *client, int32_t x, int32_t y,
+					 int32_t w, int32_t h)
+{
+	XWindowChanges wc;
+	int32_t gap_off_set = 0;
+	int32_t gap_increase = 0;
+	wc.border_width = client->bw;
+	const int32_t num_clients = Monitor__get_num_clients(client->mon);
+
+	if (Client__safe_to_modify(client)) {
+		if (num_clients == 1 ||
+		    Monitor__is_layout_monocle(client->mon)) {
+			gap_off_set = 0;
+			gap_increase = G_GAP_PIXEL * -2;
+			wc.border_width = 0;
+		} else {
+			gap_off_set = G_GAP_PIXEL;
+			gap_increase = G_GAP_PIXEL * 2;
+		}
+	}
+
+	client->oldx = client->x;
+	client->oldy = client->y;
+	client->oldw = client->w;
+	client->oldh = client->h;
+
+	client->x = wc.x = x + gap_off_set;
+	client->y = wc.y = y + gap_off_set;
+	client->w = wc.width = w - gap_increase;
+	client->h = wc.height = h - gap_increase;
+
+	return wc;
+}
+
+bool Client__safe_to_modify(Client *client)
+{
+	return (!client->isfloating &&
+		client->mon->layouts[client->mon->selected_layout]->handler !=
+			NULL);
 }
 
 void Client__attach(Client *client)
@@ -176,7 +219,7 @@ void Client__send_to_monitor(Client *client, Monitor *target_monitor)
 	// Update the clients monitor with the new monitor it will be on.
 	client->mon = target_monitor;
 	// Assign tags of target monitor
-	client->tags = target_monitor->tagset[target_monitor->selected_tags];
+	client->tags = target_monitor->tag_set[target_monitor->selected_tags];
 	// Attach the client to the new monitor list and stack, then focus,
 	// and arrange all monitors
 	Client__attach(client);

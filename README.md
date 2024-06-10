@@ -34,15 +34,14 @@
 - [x] Built in status bar with tags as workspaces.
 - [x] Configured through editing the `swm/src/config.c` file. **Swm** relies on being recompiled
       after changes to its code, this works because it recompiles so fast.
-- [x] Built in program autostart support (no need to use the .xinitrc) found in `swm/src/main.c`.
+- [x] Built in program autostart support (doesn't rely on an unwieldly amount of scripts to start programs we all need) found in `swm/src/main.c`.
 - [ ] Multi-monitor support (under development).
-- [ ] Runtime configuration file (will replace the config.h approach).
 - [ ] System tray support.
-- [ ] Window gaps
+- [x] Window gaps (for the ladies)
 - [x] Arbitrarily swapping windows with master window in stack.
 - [x] Horizontally resizing windows
 - [ ] Vertically resizing windows
-- [ ] Re-write/re-implement the suckless drawable.h FontConfig code.
+- [ ] Re-write/re-implement the suckless drawable.h FontConfig/XftFont drawing library (it's filthy to read).
 
 ## Install
 
